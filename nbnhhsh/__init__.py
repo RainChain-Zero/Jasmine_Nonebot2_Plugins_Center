@@ -56,6 +56,10 @@ sx_matcher = on_command("sx", None, {"缩写"})
 async def sxHandler(bot: Bot, event: MessageEvent):
     # 截取
     origin = str(event.get_message())[3:]
+    # 中文拦截
+    for ch in origin:
+        if u'\u4e00' <= ch <= u'\u9fff':
+            await sx_matcher.finish("名词只能是缩写哦，不支持中文")
     res = await httpPost(origin)
     msg = ""
     try:
@@ -90,6 +94,9 @@ async def sxaddHandle(event: MessageEvent):
     if len(tmplist) <= 1:
         await sx_add.finish("参数有误啦！")
     item = tmplist[0]
+    for ch in item:
+        if u'\u4e00' <= ch <= u'\u9fff':
+            await sx_add.finish("名词只能是缩写哦，不支持中文")
     new = tmplist[1]
     await addnew(item, new)
     await sx_add.finish(f"茉莉已经提交{item}的补充解释")
