@@ -1,11 +1,12 @@
 import asyncio
+from operator import imod
 import traceback
 from cn2an import cn2an
 from dataclasses import dataclass
-from typing import Optional, Set, Tuple
+from typing import Optional, Set, Tuple, Union
 
 import nonebot
-from nonebot import on_regex, on_keyword
+from nonebot import on_command, on_regex, on_keyword
 from nonebot.adapters.mirai2 import MessageEvent
 from nonebot.log import logger
 from nonebot.matcher import Matcher
@@ -26,7 +27,7 @@ from .handles.prts_handle import PrtsHandle
 
 from .config import draw_config
 
-
+from nonebot.adapters.mirai2 import MessageSegment
 @dataclass
 class Game:
     keywords: Set[str]
@@ -186,3 +187,10 @@ async def _():
             if not game.handle.data_exists():
                 tasks.append(asyncio.ensure_future(game.handle.update_info()))
     await asyncio.gather(*tasks)
+
+# 用户帮助文档
+helphandle=on_command("help抽卡",None,{"help 抽卡"})
+
+@helphandle.handle()
+async def helpdraw():
+    await helphandle.finish(MessageSegment.image(None,None,"/home/mirai/Dice3349795206/plugin/HelpPic/drawcard.png",None))
