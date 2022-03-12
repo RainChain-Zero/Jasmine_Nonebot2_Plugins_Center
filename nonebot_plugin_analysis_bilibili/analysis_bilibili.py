@@ -132,8 +132,8 @@ async def video_detail(url, page):
         ) as resp:
             res = await resp.json()
             res = res["data"]
-        header='【茉莉bilibili视频预览】'
-        vurl = f"https://www.bilibili.com/video/av{res['aid']}"
+        header='【茉莉bilibili视频预览】\n'
+        vurl = f"直连：https://www.bilibili.com/video/av{res['aid']}"
         title = f"\n标题：{res['title']}\n"
         if page:
             page = page[0].replace("&amp;", "&")
@@ -155,7 +155,7 @@ async def video_detail(url, page):
         desc_list = desc.split("\n")
         if len(desc_list) > 4:
             desc = desc_list[0] + "\n" + desc_list[1] + "\n" + desc_list[2] + "……"
-        msg = str(header) + str(title) + str(tname) + str(stat) + str(desc)
+        msg = str(header)+str(vurl) + str(title) + str(tname) + str(stat) + str(desc)
         return msg, vurl
     except Exception as e:
         msg = "视频解析出错了--Error: {}".format(type(e))
