@@ -10,6 +10,10 @@ from selenium.webdriver.common.by import By
 
 from .config import Config
 
+from nonebot import get_driver
+
+driver=get_driver()
+
 global_config = get_driver().config
 config = Config.parse_obj(global_config)
 
@@ -68,7 +72,8 @@ async def StartGame(event:GroupMessage):
         # ! 自动补全 但可能导致红-->红豆之类的bug
         suggest=BrowserNow.find_element(By.CSS_SELECTOR,"#guessautocomplete-list div:first-child input").get_dom_attribute('value')
         # 排除可能补全bug
-        if(operator!="红" and operator!="梅" ):
+        if(operator!="红" and operator!="梅" and operator!="山" and operator!="黑" and operator!="w" and operator!="W"
+        and operator!="阿"):
             input.clear()
             input.send_keys(suggest)
     except:
@@ -99,7 +104,7 @@ async def StartGame(event:GroupMessage):
         # 显示答案
         res=BrowserNow.find_element(By.CSS_SELECTOR,'.answer').get_attribute('innerText')
         # 准备重新开始
-        del GroupCnt[event.sender.group.id]
+        GroupCnt[event.sender.group.id]=8
         BrowserNow.find_element(By.CSS_SELECTOR,'.main-container .togglec').click()
 
     msg=f"『干员猜猜乐』当前剩余次数{cnt}/8\n"+MessageSegment.image(None,None,None,pic)
@@ -149,7 +154,15 @@ async def ClearBroswer():
             # 超过20分钟未进行问答
             if(time.time()-GroupLastTime[group]>1200):
                 logger.warning("guessoperator:已执行一轮清除")
+                del GroupCnt[group]
                 BroswerDic[group].quit()
                 del BroswerDic[group]
 
 scheduler.add_job(ClearBroswer,"interval", minutes=25, id="guessoperator")
+
+# 退出时关闭所有实例
+@driver.on_shutdown
+async def do_something():
+    for group in list(BroswerDic.keys()):
+        BroswerDic[group].quit()
+        del BroswerDic[group]
