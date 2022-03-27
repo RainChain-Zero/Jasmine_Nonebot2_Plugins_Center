@@ -52,7 +52,7 @@ class PrtsHandle(BaseHandle[Operator]):
         all_operators = [
             x
             for x in self.ALL_OPERATOR
-            if x.star == star and not any([x.limited, x.event_only, x.recruit_only])
+            if x.star == star and not any([x.limited, x.recruit_only, x.event_only])
         ]
         acquire_operator = None
 
@@ -105,14 +105,15 @@ class PrtsHandle(BaseHandle[Operator]):
 
     def draw(self, count: int, **kwargs) -> MessageChain:
         index2card = self.get_cards(count)
-        cards = [card[0] for card in self.get_cards(count)]
+        """这里cards修复了抽卡图文不符的bug"""
+        cards = [card[0] for card in index2card]
         up_list = [x.name for x in self.UP_EVENT.up_char] if self.UP_EVENT else []
         result = self.format_result(index2card, up_list=up_list)
         pool_info = self.format_pool_info()
         return (
             pool_info
-            + MessageSegment.image(None,None,None,self.generate_img(cards).pic2bs4())
-            #! +result  但因为无法正确显示星级和计数，所以暂停
+            + MessageSegment.image(base64=self.generate_img(cards).pic2bs4())
+            + result
         )
 
     def generate_card_img(self, card: Operator) -> BuildImage:
@@ -185,14 +186,14 @@ class PrtsHandle(BaseHandle[Operator]):
                 avatar = char.xpath("./td[1]/div/div/div/a/img/@srcset")[0]
                 name = char.xpath("./td[2]/a/text()")[0]
                 star = char.xpath("./td[5]/text()")[0]
-                sources = str(char.xpath("./td[8]/text()")[0]).split("\n")
+                sources = [_.strip('\n') for _ in char.xpath("./td[8]/text()")]
             except IndexError:
                 continue
             member_dict = {
                 "头像": unquote(str(avatar).split(" ")[-2]),
                 "名称": remove_prohibited_str(str(name).strip()),
                 "星级": int(str(star).strip()),
-                "获取途径": [s for s in sources if s],
+                "获取途径": sources,
             }
             info[member_dict["名称"]] = member_dict
         self.dump_data(info)
@@ -288,5 +289,5 @@ class PrtsHandle(BaseHandle[Operator]):
         self.load_up_char()
         if self.UP_EVENT:
             return f"重载成功！\n当前UP池子：{self.UP_EVENT.title}" + MessageSegment.image(
-                self.UP_EVENT.pool_img
+                base64=self.UP_EVENT.pool_img
             )

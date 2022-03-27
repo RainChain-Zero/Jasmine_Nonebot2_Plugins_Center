@@ -53,12 +53,12 @@ async def StartGame(event: GroupMessage):
         # 创建Chrome对象并传入设置信息.
         browser = webdriver.ChromiumEdge(options=opt)
         browser.get("http://akg.saki.cc")
-        BroswerDic[event.sender.group.id] = browser
         browser.implicitly_wait(2)
+        BroswerDic[event.sender.group.id]=browser
         try:
             browser.find_element(By.CSS_SELECTOR, '.close-icon').click()
         except:
-            logger.warning("guessoperator:错误的关闭前置提示！")
+            await StartTrigger.finish("网络连接出错！")
 
     BrowserNow = BroswerDic[event.sender.group.id]
     # 当前群不存在次数配置
@@ -67,9 +67,11 @@ async def StartGame(event: GroupMessage):
 
     # 更新群最后问答时间
     GroupLastTime[event.sender.group.id] = time.time()
-
-    input = BrowserNow.find_element(By.ID, 'guess')
-    input.send_keys(operator)
+    try:
+        input = BrowserNow.find_element(By.ID, 'guess')
+        input.send_keys(operator)
+    except:
+        await StartTrigger.finish("当前进程网络连接失败！")
     # 判断干员名是否输入正确
     # ! 暂时弃用
     # try:
@@ -165,8 +167,13 @@ async def StopGame(event: GroupMessage):
     if(GroupCnt.__contains__(event.sender.group.id) and BroswerDic.__contains__(event.sender.group.id)):
         del GroupCnt[event.sender.group.id]
         # 关闭浏览器实例
-        BroswerDic[event.sender.group.id].quit()
-        del BroswerDic[event.sender.group.id]
+        try:
+            BroswerDic[event.sender.group.id].refresh()
+            BroswerDic[event.sender.group.id].delete_all_cookies()
+            BroswerDic[event.sender.group.id].quit()
+            del BroswerDic[event.sender.group.id]
+        except:
+            pass
     await StopTrigger.finish("茉莉已成功关闭本轮猜题")
 
 # 定时检查关闭浏览器实例
@@ -181,8 +188,13 @@ async def ClearBroswer():
             if(time.time()-GroupLastTime[group] > 1200):
                 logger.warning("guessoperator:已执行一轮清除")
                 del GroupCnt[group]
-                BroswerDic[group].quit()
-                del BroswerDic[group]
+                try:
+                    BroswerDic[group].refresh()
+                    BroswerDic[group].delete_all_cookies()
+                    BroswerDic[group].quit()
+                    del BroswerDic[group]
+                except:
+                    pass
 
 scheduler.add_job(ClearBroswer, "interval", minutes=25, id="guessoperator")
 
@@ -191,8 +203,13 @@ scheduler.add_job(ClearBroswer, "interval", minutes=25, id="guessoperator")
 @driver.on_shutdown
 async def do_something():
     for group in list(BroswerDic.keys()):
-        BroswerDic[group].quit()
-        del BroswerDic[group]
+        try:
+            BroswerDic[group].refresh()
+            BroswerDic[group].delete_all_cookies()
+            BroswerDic[group].quit()
+            del BroswerDic[group]
+        except:
+            pass
 
 
 @SearchTrigger.handle()
