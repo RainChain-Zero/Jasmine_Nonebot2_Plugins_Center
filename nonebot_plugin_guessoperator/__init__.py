@@ -91,7 +91,7 @@ async def StartGame(event: GroupMessage):
     # todo 暂时采用本地信息
     # ! 注意文件路径
     data = json.load(open(
-        r'/home/nonebot2/src/plugins/guessoperator/operator.json', encoding='UTF-8'))
+        r'F:\Bot\NoneBot2\nonebot\src\plugins\guessoperator\operator.json', encoding='UTF-8'))
     if(not data.__contains__(operator)):
         input.clear()
         await StartTrigger.finish("当前干员名称输入有误哦~")
@@ -217,7 +217,7 @@ async def SearchOperator(event: MessageEvent):
     operator = event.get_plaintext()[5:]
     #! 注意文件路径
     data = json.load(open(
-        r'/home/nonebot2/src/plugins/guessoperator/operator.json', encoding='UTF-8'))
+        r'F:\Bot\NoneBot2\nonebot\src\plugins\guessoperator\operator.json', encoding='UTF-8'))
     if(data.__contains__(operator)):
         await SearchTrigger.finish(data[operator])
     else:
