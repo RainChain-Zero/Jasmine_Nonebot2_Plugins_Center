@@ -30,7 +30,7 @@ async def send_setu_boom(bot: Bot, event: MessageEvent):
     if(not judge_user_permission(event.sender.id, 1)):
         await setu_boom.finish("『✖条件未满足』茉莉还不想给你看这些哦~(此功能好感要求>3000)")
     if(isinstance(event, GroupMessage) and not judge_group_permission(event.sender.group.id)):
-        await setu_boom.finish("『✖群权限不足』茉莉并不觉得在这里这么做是安全的哦×(此功能需要向管理员申请许可)")
+        await setu_boom.finish("『✖群权限不足』茉莉并不觉得在这里这么做是安全的哦×(此功能需要向茉莉管理员申请许可)")
 
     messagechain_list = call_setu_api(num)
 

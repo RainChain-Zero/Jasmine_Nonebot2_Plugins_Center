@@ -9,9 +9,10 @@ config = Config.parse_obj(global_config)
 
 
 yuki_trigger_01 = on_startswith("...")
-
+yuki_trigger_02=on_startswith("…")
 
 @yuki_trigger_01.handle()
+@yuki_trigger_02.handle()
 async def yuki_reply_01(event: FriendMessage):
     if(event.sender.id == 1298754454):
         await yuki_trigger_01.finish(draw_reply(event.sender.id, "...", event), quote=event.source.id)

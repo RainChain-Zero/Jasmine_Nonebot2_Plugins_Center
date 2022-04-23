@@ -65,23 +65,23 @@ def call_setu_api(num: int):
     # 一条消息的消息链
     pic_list = MessageChain([])
     return_list = []
-    tags = ""
+    # tags = ""
 
     # 提取返回json字段
     for data in res["data"]:
         title = data["title"]
         author = data["author"]
-        tag_cnt = 0
-        for tag in data["tags"]:
-            tags = tags + f"| {tag}"
-            tag_cnt = tag_cnt+1
-            if(tag_cnt > 8):
-                break
+        # tag_cnt = 0
+        # for tag in data["tags"]:
+        #     tags = tags + f"| {tag}"
+        #     tag_cnt = tag_cnt+1
+        #     if(tag_cnt > 8):
+        #         break
         pic_list.append(MessageSegment.plain(
-            f"标题：{title}\n作者：{author}\ntags：{tags}\n"))
+            f"标题：{title}\n作者：{author}\n"))
         pic_list.append(MessageSegment.image(url=data["urls"]["original"]))
         return_list.append(pic_list)
-        tags = ""
+        # tags = ""
         pic_list = MessageChain([])
 
     return return_list
