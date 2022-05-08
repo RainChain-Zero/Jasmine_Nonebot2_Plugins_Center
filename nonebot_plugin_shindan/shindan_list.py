@@ -31,40 +31,6 @@ def load_shindan_list() -> Dict[str, dict]:
 _shindan_list = load_shindan_list()
 
 
-def dump_shindan_list():
-    data_path.parent.mkdir(parents=True, exist_ok=True)
-    json.dump(
-        _shindan_list,
-        data_path.open('w', encoding='utf-8'),
-        indent=4,
-        separators=(',', ': '),
-        ensure_ascii=False,
-    )
-
-
 def get_shindan_list() -> Dict[str, dict]:
     return _shindan_list
 
-
-def add_shindan(id: str, cmd: str, title: str) -> bool:
-    if id in _shindan_list:
-        return False
-    _shindan_list[id] = {'command': cmd, 'title': title}
-    dump_shindan_list()
-    return True
-
-
-def del_shindan(id: str) -> bool:
-    if id not in _shindan_list:
-        return False
-    _shindan_list.pop(id)
-    dump_shindan_list()
-    return True
-
-
-def set_shindan(id: str, mode: str) -> bool:
-    if id not in _shindan_list:
-        return False
-    _shindan_list[id]['mode'] = mode
-    dump_shindan_list()
-    return True

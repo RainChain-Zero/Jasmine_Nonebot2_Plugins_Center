@@ -2,21 +2,22 @@ import base64
 import json
 import re
 import traceback
-from nonebot.rule import Rule, to_me
+from nonebot.rule import Rule
 from nonebot.log import logger
 from nonebot.typing import T_State
-from nonebot.permission import SUPERUSER
 from nonebot import on_command, on_message
-from nonebot.params import CommandArg, EventMessage, EventPlainText, State
+from nonebot.params import  EventMessage, EventPlainText, State
 from nonebot.adapters.mirai2 import (
     Bot,
     MessageEvent,
     MessageChain,
     MessageSegment,
+    GroupMessage,
+    FriendMessage
 )
 
 from .shindan_list import get_shindan_list
-from .shindanmaker import make_shindan, get_shindan_title
+from .shindanmaker import make_shindan
 
 cmd_ls = on_command('占卜列表', aliases={'可用占卜'}, block=True, priority=8)
 
@@ -41,22 +42,12 @@ def sd_handler() -> Rule:
         state: T_State = State(),
     ) -> bool:
         async def get_name(command: str) -> str:
-            # name = ''
-            # for msg_seg in msg:
-            #     if msg_seg.type == 'at':
-            #         assert isinstance(event, GroupMessageEvent)
-            #         info = await bot.get_group_member_info(
-            #             group_id=event.group_id, user_id=msg_seg.data['qq']
-            #         )
-            #         name = info.get('card', '') or info.get('nickname', '')
-            #         break
-            # if not name:
-            #     name = msg_text[len(command) :].strip()
-            # if not name:
-            #     name = event.sender.card or event.sender.nickname
             name = msg_text[len(command) :].strip()
             if not name:
-                name = event.sender.nickname or event.sender.name
+                if isinstance(event,GroupMessage):
+                    name = event.sender.name
+                elif isinstance(event,FriendMessage):
+                    name = event.sender.nickname
             return name
 
         sd_list = get_shindan_list()
