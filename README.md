@@ -10,5 +10,9 @@ Plugin list
 + Bilibili视频解析
 + 猜干员
 + 涩图×
++ 生草制图
++ 塔罗牌
++ Shindanmaker占卜
+
 > ~~说明合集以后再写~~
 
