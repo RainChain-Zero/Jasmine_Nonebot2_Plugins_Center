@@ -1,5 +1,6 @@
+
 from nonebot import on_command
-from nonebot.adapters.mirai2 import Bot, Event, FriendMessage, GroupMessage, MessageSegment
+from nonebot.adapters.mirai2 import Bot, Event, FriendMessage, GroupMessage, MessageChain, MessageSegment
 from typing import List
 
 from .data_source import Cards, meanings, global_config
@@ -29,24 +30,32 @@ plugin_help = on_command("塔罗牌帮助", priority=6, block=True)
 tarot = on_command("塔罗牌", priority=6, block=True)
 divine = on_command("占卜", priority=6, block=True)
 
+
 @plugin_help.handle()
 async def show_help(bot: Bot, event: Event):
     await plugin_help.finish(plugin_notes)
+
 
 @tarot.handle()
 async def _(bot: Bot, event: Event):
     card = Cards(1)
     card_key, card_value, image_file = card.reveal()
-    if isinstance(event, GroupMessage): 
-        msg = MessageSegment.plain(f"{card_key}\n『{card_value}』\n") + MessageSegment.image(path=image_file)
+    if isinstance(event, GroupMessage):
+        msg = MessageSegment.plain(
+            f"『{card_key}』\n{card_value}\n") + MessageSegment.image(path=image_file)
         await tarot.finish(message=msg, at_sender=True)
     else:
-        msg = MessageSegment.plain(f"{card_key}\n『{card_value}』\n") + MessageSegment.image(path=image_file)
+        msg = MessageSegment.plain(
+            f"『{card_key}』\n{card_value}\n") + MessageSegment.image(path=image_file)
         await tarot.finish(message=msg, at_sender=False)
+
 
 @divine.handle()
 async def _(bot: Bot, event: Event):
     cards = Cards(4)
+    # chain = {
+    #     "nodeList": [],
+    # }
     chain = []
     for count in range(4):
         card_key, card_value, image_file = cards.reveal()
@@ -54,37 +63,43 @@ async def _(bot: Bot, event: Event):
         meaning_value = meanings[meaning_key]
 
         if isinstance(event, FriendMessage):
-            text = meaning_key + "，" + meaning_value + "\n" + card_key + "，" + card_value + "\n"
-            msg = MessageSegment.plain(text)+ MessageSegment.image(path=image_file)
+            text = meaning_key + "，" + meaning_value + \
+                "\n" + "『"+card_key+"』" + "，" + card_value + "\n"
+            msg = MessageSegment.plain(
+                text) + MessageSegment.image(path=image_file)
             if count < 3:
                 await bot.send_friend_message(target=event.sender.id, message_chain=msg)
             else:
                 await bot.send_friend_message(target=event.sender.id, message_chain=msg)
 
         if isinstance(event, GroupMessage):
-            if not CHAIN_REPLY:           
-                text = meaning_key + "，" + meaning_value + "\n" + card_key + "，" + card_value + "\n"
-                msg = MessageSegment.plain(text) + MessageSegment.image(path=image_file)
+            if not CHAIN_REPLY:
+                text = meaning_key + "，" + meaning_value + \
+                    "\n" + "『"+card_key+"』" + "，" + card_value + "\n"
+                msg = MessageSegment.plain(
+                    text) + MessageSegment.image(path=image_file)
                 if count < 3:
                     await bot.send(event=event, message=msg, at_sender=True)
                 else:
                     await divine.finish(message=msg, at_sender=True)
             else:
-                text = meaning_key + "，" + meaning_value + "\n" + card_key + "，" + card_value + "\n"
-                msg = MessageSegment.plain(text) + MessageSegment.image(path=image_file)
+                text = meaning_key + "，" + meaning_value + \
+                    "\n" + "『"+card_key+"』" + "，" + card_value + "\n"
+                msg = MessageChain([MessageSegment.plain(
+                    text), MessageSegment.image(path=image_file)])
                 if count < 4:
                     chain = await chain_reply(bot, chain, msg)
             if CHAIN_REPLY and count == 3:
-                await bot.send_group_forward_msg(group_id=event.sender.group.id, messages=chain)
+                await bot.send_group_message(target=event.sender.group.id, message_chain=[{"type": "Forward", "nodeList": chain}])
 
-async def chain_reply(bot: Bot, chain: List, msg: MessageSegment) -> List:
+
+async def chain_reply(bot: Bot, chain: List, msg: MessageChain) -> List:
     data = {
-        "type": "node",
-        "data": {
-            "name": f"{NICKNAME}",
-            "uin": f"{bot.self_id}",
-            "content": msg
-        },
+        "senderId": bot.self_id,
+        "time": 0,
+        "senderName": "茉莉",
+        "messageChain": msg,
+        "messageId": None
     }
     chain.append(data)
     return chain

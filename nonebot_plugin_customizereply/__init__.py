@@ -1,6 +1,5 @@
 import json
 from random import randint
-from loguru import Message
 from nonebot import Bot, get_driver, on_startswith
 from nonebot.adapters.mirai2 import FriendMessage, MessageEvent, GroupMessage
 from .config import Config
@@ -34,7 +33,7 @@ trigger_839968342_02 = on_startswith("茉莉?")
 @trigger_839968342_02.handle()
 async def reply_839968342_01(bot:Bot,event:MessageEvent):
     if event.sender.id == 839968342:
-        await bot.send(draw_reply(event.sender.id,"茉莉？",event),quote=event.source.id)
+        await bot.send(event=event,message=draw_reply(839968342,"茉莉？",event),quote=event.source.id)
 
 def draw_reply(qq: int, trigger: str, event: MessageEvent):
     f = open(config.reply_path, "r", encoding="utf-8")
