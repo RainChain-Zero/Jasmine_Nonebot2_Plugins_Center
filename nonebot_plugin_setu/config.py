@@ -5,7 +5,7 @@ class Config(BaseSettings):
     # 一次最大发送涩图量
     maxnum = 6
     # 用户数据文件夹
-    conf_path = r"/home/mirai/Dice3349795206/UserConfDir"
+    conf_path = r"F:\Bot\mirai_console_diceplugin\Dice2632573315\user\UserConf"
     group_permission_path = r"/home/nonebot2/src/plugins/nonebot_plugin_setu/group_permission.json"
     # 管理员
     admin_list = [3032902237, 2677409596]

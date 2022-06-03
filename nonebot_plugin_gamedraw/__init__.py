@@ -38,31 +38,31 @@ class Game:
 
 
 games = (
-    Game({"azur", "碧蓝", "碧蓝航线"}, AzurHandle(), draw_config.AZUR_FLAG),
-    Game({"fgo", "命运冠位指定"}, FgoHandle(), draw_config.FGO_FLAG),
+    Game({"/azur", "/碧蓝", "/碧蓝航线"}, AzurHandle(), draw_config.AZUR_FLAG),
+    Game({"/fgo", "/命运冠位指定"}, FgoHandle(), draw_config.FGO_FLAG),
     Game(
-        {"genshin", "原神"},
+        {"/genshin", "/原神"},
         GenshinHandle(),
         draw_config.GENSHIN_FLAG,
         max_count=180,
         reload_time=18,
     ),
     Game(
-        {"guardian", "坎公骑冠剑"},
+        {"/guardian", "/坎公骑冠剑"},
         GuardianHandle(),
         draw_config.GUARDIAN_FLAG,
         reload_time=4,
     ),
-    Game({"onmyoji", "阴阳师"}, OnmyojiHandle(), draw_config.ONMYOJI_FLAG),
-    Game({"pcr", "公主连结", "公主连接", "公主链接", "公主焊接"}, PcrHandle(), draw_config.PCR_FLAG),
+    Game({"/onmyoji", "/阴阳师"}, OnmyojiHandle(), draw_config.ONMYOJI_FLAG),
+    Game({"/pcr", "/公主连结", "/公主连接", "/公主链接", "/公主焊接"}, PcrHandle(), draw_config.PCR_FLAG),
     Game(
-        {"pretty", "马娘", "赛马娘"},
+        {"/pretty", "/马娘", "/赛马娘"},
         PrettyHandle(),
         draw_config.PRETTY_FLAG,
         max_count=200,
         reload_time=4,
     ),
-    Game({"prts", "方舟", "明日方舟"}, PrtsHandle(), draw_config.PRTS_FLAG, reload_time=4),
+    Game({"/prts", "/方舟", "/明日方舟"}, PrtsHandle(), draw_config.PRTS_FLAG, reload_time=4),
 )
 
 

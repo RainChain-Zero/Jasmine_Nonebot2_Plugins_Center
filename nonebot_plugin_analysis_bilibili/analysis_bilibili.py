@@ -4,6 +4,8 @@ import time
 import urllib.parse
 import json
 
+from nonebot import logger
+
 analysis_stat = {}  # analysis_stat: video_url(vurl)
 
 
@@ -57,6 +59,7 @@ async def b23_extract(text):
     b23 = re.compile(r"b23.tv/(\w+)|(bili(22|23|33|2233).cn)/(\w+)", re.I).search(
         text.replace("\\", "")
     )
+    logger.info(b23[0])
     url = f"https://{b23[0]}"
     async with aiohttp.request(
         "GET", url, timeout=aiohttp.client.ClientTimeout(10)

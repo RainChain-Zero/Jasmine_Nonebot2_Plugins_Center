@@ -1,4 +1,5 @@
 
+from email import message
 from nonebot import on_command
 from nonebot.adapters.mirai2 import Bot, Event, FriendMessage, GroupMessage, MessageChain, MessageSegment
 from typing import List
@@ -91,7 +92,6 @@ async def _(bot: Bot, event: Event):
                     chain = await chain_reply(bot, chain, msg)
             if CHAIN_REPLY and count == 3:
                 await bot.send_group_message(target=event.sender.group.id, message_chain=[{"type": "Forward", "nodeList": chain}])
-
 
 async def chain_reply(bot: Bot, chain: List, msg: MessageChain) -> List:
     data = {

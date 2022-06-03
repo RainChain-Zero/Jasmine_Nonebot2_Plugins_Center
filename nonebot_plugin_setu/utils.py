@@ -21,7 +21,7 @@ def judge_maxnum(num):
 
 def judge_user_permission(qq: int, opt: int) -> bool:
     try:
-        f = open(f"{config.conf_path}/{qq}/favorConf.json",
+        f = open(f"{config.conf_path}\\{qq}\\favorConf.json",
                  "r", encoding="utf-8")
     except:
         return False
@@ -58,8 +58,10 @@ def judge_group_permission(group: int) -> bool:
 
 
 def call_setu_api(num: int):
+    # res = requests.get(
+    #     f"https://api.lolicon.app/setu/v2?proxy=pixiv.runrab.workers.dev&num={num}").json()
     res = requests.get(
-        f"https://api.lolicon.app/setu/v2?proxy=pixiv.runrab.workers.dev&num={num}").json()
+        f"https://api.lolicon.app/setu/v2?proxy=i.pixiv.cat&num={num}").json()
     if(res["error"] != ""):
         return False
     # 一条消息的消息链
