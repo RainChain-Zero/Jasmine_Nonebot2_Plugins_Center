@@ -603,7 +603,7 @@ def follow(user=User(), arg: str = Arg()):
 
 def my_friend(
     user = User(),
-    sender: UserInfo = Sender(),
+    sender = Sender(),
     name: str = RegexArg("name"),
     args: List[str] = Args(0, 10),
 ):
@@ -848,7 +848,7 @@ def safe_sense(user = User(), arg: str = Arg()):
     return frame.save_jpg()
 
 
-def always_like(users: List[UserInfo] = Users(1, 6), args: List[str] = Args(0, 6)):
+def always_like(users = Users(1, 6), args: List[str] = Args(0, 6)):
     img = users[0].img.convert("RGBA")
     name = (args[0] if args else "") or users[0].name
     if not name:
