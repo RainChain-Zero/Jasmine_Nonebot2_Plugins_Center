@@ -1,6 +1,6 @@
 ### Jasmine_Nonebot2_Plugins_Center 
 
-茉莉酱的nonebot2插件中心，实现了onebot和mirai的对接
+茉莉酱的nonebot2插件中心，采用**mirai适配器**
 
 Plugin list
 
@@ -13,6 +13,8 @@ Plugin list
 + 生草制图
 + 塔罗牌
 + Shindanmaker占卜
++ petpet表情包
++ saucenao搜图
 
 > ~~说明合集以后再写~~
 
