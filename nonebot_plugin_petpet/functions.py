@@ -1,5 +1,5 @@
-import base64
 import random
+from datetime import datetime
 from collections import namedtuple
 from PIL import Image, ImageFilter
 from PIL.Image import Image as IMG
@@ -12,10 +12,10 @@ from .utils import UserInfo, save_gif, make_jpg_or_gif, translate
 from .depends import *
 
 
-TEXT_TOO_LONG = "『×参数错误』文字太长了哦，改短点再试吧~"
-NAME_TOO_LONG = "『×参数错误』名字太长了哦，改短点再试吧~"
-REQUIRE_NAME = "『×参数错误』找不到名字，加上名字再试吧~"
-REQUIRE_ARG = "『×参数错误』该表情至少需要一个参数哦~"
+TEXT_TOO_LONG = "文字太长了哦，改短点再试吧~"
+NAME_TOO_LONG = "名字太长了哦，改短点再试吧~"
+REQUIRE_NAME = "找不到名字，加上名字再试吧~"
+REQUIRE_ARG = "该表情至少需要一个参数"
 
 
 def universal(img: BuildImage = UserImg(), args: List[str] = Args(0, 10)):
@@ -246,7 +246,9 @@ def always(img: BuildImage = UserImg(), arg=NoArg()):
         h1 = img_big.height
         h2 = max(img_small.height, 80)
         frame = BuildImage.new("RGBA", (500, h1 + h2 + 10), "white")
-        frame.paste(img_big, alpha=True).paste(img_small, (290, h1 + 5), alpha=True)
+        frame.paste(img_big, alpha=True).paste(
+            img_small, (290, h1 + 5 + (h2 - img_small.height) // 2), alpha=True
+        )
         frame.draw_text(
             (20, h1 + 5, 280, h1 + h2 + 5), "要我一直", halign="right", max_fontsize=60
         )
@@ -262,7 +264,7 @@ def loading(img: BuildImage = UserImg(), arg=NoArg()):
     img_big = img.convert("RGBA").resize_width(500)
     img_big = img_big.filter(ImageFilter.GaussianBlur(radius=3))
     h1 = img_big.height
-    mask = BuildImage.new("RGBA", img_big.size, (0, 0, 0, 128))
+    mask = BuildImage.new("RGBA", img_big.size, (0, 0, 0, 64))
     icon = load_image("loading/icon.png")
     img_big.paste(mask, alpha=True).paste(icon, (200, int(h1 / 2) - 50), alpha=True)
 
@@ -270,7 +272,9 @@ def loading(img: BuildImage = UserImg(), arg=NoArg()):
         img_small = img.resize_width(100)
         h2 = max(img_small.height, 80)
         frame = BuildImage.new("RGBA", (500, h1 + h2 + 10), "white")
-        frame.paste(img_big, alpha=True).paste(img_small, (100, h1 + 5), alpha=True)
+        frame.paste(img_big, alpha=True).paste(
+            img_small, (100, h1 + 5 + (h2 - img_small.height) // 2), alpha=True
+        )
         frame.draw_text(
             (210, h1 + 5, 480, h1 + h2 + 5), "不出来", halign="left", max_fontsize=60
         )
@@ -291,8 +295,7 @@ def turn(img: BuildImage = UserImg(), arg=NoArg()):
     return save_gif(frames, 0.05)
 
 
-def littleangel(user= User(), arg: str = Arg()):
-    logger.info("yes-tianshi")
+def littleangel(user: UserInfo = User(), arg: str = Arg()):
     img = user.img.convert("RGBA").resize_width(500)
     img_w, img_h = img.size
     frame = BuildImage.new("RGBA", (600, img_h + 230), "white")
@@ -300,20 +303,20 @@ def littleangel(user= User(), arg: str = Arg()):
 
     text = "非常可爱！简直就是小天使"
     frame.draw_text(
-        (10, img_h + 120, 590, img_h + 185), text, max_fontsize=48, bold=True
+        (10, img_h + 120, 590, img_h + 185), text, max_fontsize=48, weight="bold"
     )
 
-    ta = "他" if user.gender == "MALE" else "她"
+    ta = "他" if user.gender == "male" else "她"
     text = f"{ta}没失踪也没怎么样  我只是觉得你们都该看一下"
     frame.draw_text(
-        (20, img_h + 180, 580, img_h + 215), text, max_fontsize=26, bold=True
+        (20, img_h + 180, 580, img_h + 215), text, max_fontsize=26, weight="bold"
     )
 
     name = arg or user.name or ta
     text = f"请问你们看到{name}了吗?"
     try:
         frame.draw_text(
-            (20, 0, 580, 110), text, max_fontsize=70, min_fontsize=25, bold=True
+            (20, 0, 580, 110), text, max_fontsize=70, min_fontsize=25, weight="bold"
         )
     except ValueError:
         return NAME_TOO_LONG
@@ -431,7 +434,7 @@ def police1(img: BuildImage = UserImg(), arg=NoArg()):
     return frame.save_jpg()
 
 
-def ask(user= User(), arg: str = Arg()):
+def ask(user: UserInfo = User(), arg: str = Arg()):
     img = user.img.resize_width(640)
     img_w, img_h = img.size
     gradient_h = 150
@@ -444,15 +447,17 @@ def ask(user= User(), arg: str = Arg()):
     img.paste(mask, alpha=True)
 
     name = arg or user.name
-    ta = "他" if user.gender == "MALE" else "她"
+    ta = "他" if user.gender == "male" else "她"
     if not name:
         return REQUIRE_NAME
 
     start_w = 20
     start_h = img_h - gradient_h + 5
-    text_img1 = Text2Image.from_text(f"{name}", 28, fill="orange", bold=True).to_image()
+    text_img1 = Text2Image.from_text(
+        f"{name}", 28, fill="orange", weight="bold"
+    ).to_image()
     text_img2 = Text2Image.from_text(
-        f"{name}不知道哦。", 28, fill="white", bold=True
+        f"{name}不知道哦。", 28, fill="white", weight="bold"
     ).to_image()
     img.paste(
         text_img1,
@@ -539,7 +544,7 @@ def china_flag(img: BuildImage = UserImg(), arg=NoArg()):
     return frame.save_jpg()
 
 
-def make_friend(user=User(), arg: str = Arg()):
+def make_friend(user: UserInfo = User(), arg: str = Arg()):
     img = user.img.convert("RGBA")
 
     bg = load_image("make_friend/0.png")
@@ -583,7 +588,7 @@ def perfect(img: BuildImage = UserImg(), arg=NoArg()):
     return frame.save_jpg()
 
 
-def follow(user=User(), arg: str = Arg()):
+def follow(user: UserInfo = User(), arg: str = Arg()):
     img = user.img.circle().resize((200, 200))
 
     ta = "女同" if user.gender == "female" else "男同"
@@ -602,8 +607,8 @@ def follow(user=User(), arg: str = Arg()):
 
 
 def my_friend(
-    user = User(),
-    sender = Sender(),
+    user: Optional[UserInfo] = User(),
+    sender: UserInfo = Sender(),
     name: str = RegexArg("name"),
     args: List[str] = Args(0, 10),
 ):
@@ -677,7 +682,7 @@ def shock(img: BuildImage = UserImg(), arg=NoArg()):
     return save_gif(frames, 0.01)
 
 
-def coupon(user = User(), arg: str = Arg()):
+def coupon(user: UserInfo = User(), arg: str = Arg()):
     text = (arg or f"{user.name}陪睡券") + "\n（永久有效）"
     text_img = BuildImage.new("RGBA", (250, 100))
     try:
@@ -828,12 +833,12 @@ def symmetric(img: BuildImage = UserImg(), arg: str = Arg(["上", "下", "左", 
     return frame.save_jpg()
 
 
-def safe_sense(user = User(), arg: str = Arg()):
+def safe_sense(user: UserInfo = User(), arg: str = Arg()):
     img = user.img.convert("RGBA").resize((215, 343), keep_ratio=True)
     frame = load_image(f"safe_sense/0.png")
     frame.paste(img, (215, 135))
 
-    ta = "他" if user.gender == "MALE" else "她"
+    ta = "他" if user.gender == "male" else "她"
     text = arg or f"你给我的安全感\n远不及{ta}的万分之一"
     try:
         frame.draw_text(
@@ -848,7 +853,7 @@ def safe_sense(user = User(), arg: str = Arg()):
     return frame.save_jpg()
 
 
-def always_like(users = Users(1, 6), args: List[str] = Args(0, 6)):
+def always_like(users: List[UserInfo] = Users(1, 6), args: List[str] = Args(0, 6)):
     img = users[0].img.convert("RGBA")
     name = (args[0] if args else "") or users[0].name
     if not name:
@@ -865,7 +870,7 @@ def always_like(users = Users(1, 6), args: List[str] = Args(0, 6)):
             text,
             max_fontsize=70,
             min_fontsize=30,
-            bold=True,
+            weight="bold",
         )
     except ValueError:
         return NAME_TOO_LONG
@@ -902,7 +907,7 @@ def always_like(users = Users(1, 6), args: List[str] = Args(0, 6)):
                 name,
                 max_fontsize=70,
                 min_fontsize=30,
-                bold=True,
+                weight="bold",
             )
         except ValueError:
             return NAME_TOO_LONG
@@ -969,7 +974,7 @@ def cyan(img: BuildImage = UserImg(), arg=NoArg()):
         (400, 40, 480, 280),
         "群\n青",
         max_fontsize=80,
-        bold=True,
+        weight="bold",
         fill="white",
         stroke_ratio=0.04,
         stroke_fill=color,
@@ -1214,7 +1219,6 @@ def marriage(img: BuildImage = UserImg(), arg=NoArg()):
         img_w = 1500
     elif img_w < 800:
         img_h = int(img_h * img_w / 800)
-        img_w = 800
     frame = img.resize_canvas((img_w, img_h)).resize_height(1080)
     left = load_image("marriage/0.png")
     right = load_image("marriage/1.png")
@@ -1222,3 +1226,51 @@ def marriage(img: BuildImage = UserImg(), arg=NoArg()):
         right, (frame.width - right.width, 0), alpha=True
     )
     return frame.save_jpg()
+
+
+def painter(img: BuildImage = UserImg(), arg=NoArg()):
+    img = img.convert("RGBA").resize((240, 345), keep_ratio=True, direction="north")
+    frame = load_image("painter/0.png")
+    frame.paste(img, (125, 91), below=True)
+    return frame.save_jpg()
+
+
+def repeat(
+    users: List[UserInfo] = Users(1, 5), sender: UserInfo = Sender(), arg: str = Arg()
+):
+    def single_msg(user: UserInfo) -> BuildImage:
+        user_img = user.img.convert("RGBA").circle().resize((100, 100))
+        user_name_img = Text2Image.from_text(f"{user.name}", 40).to_image()
+        time = datetime.now().strftime("%H:%M")
+        time_img = Text2Image.from_text(time, 40, fill="gray").to_image()
+        bg = BuildImage.new("RGB", (1079, 200), (248, 249, 251, 255))
+        bg.paste(user_img, (50, 50), alpha=True)
+        bg.paste(user_name_img, (175, 45), alpha=True)
+        bg.paste(time_img, (200 + user_name_img.width, 50), alpha=True)
+        bg.paste(text_img, (175, 100), alpha=True)
+        return bg
+
+    text = arg or "救命啊"
+    text_img = Text2Image.from_text(text, 50).to_image()
+    if text_img.width > 900:
+        return TEXT_TOO_LONG
+
+    msg_img = BuildImage.new("RGB", (1079, 1000))
+    for i in range(5):
+        index = i % len(users)
+        msg_img.paste(single_msg(users[index]), (0, 200 * i))
+    msg_img_twice = BuildImage.new("RGB", (msg_img.width, msg_img.height * 2))
+    msg_img_twice.paste(msg_img).paste(msg_img, (0, msg_img.height))
+
+    input_img = load_image("repeat/0.jpg")
+    self_img = sender.img.convert("RGBA").circle().resize((75, 75))
+    input_img.paste(self_img, (15, 40), alpha=True)
+
+    frames: List[IMG] = []
+    for i in range(50):
+        frame = BuildImage.new("RGB", (1079, 1192), "white")
+        frame.paste(msg_img_twice, (0, -20 * i))
+        frame.paste(input_img, (0, 1000))
+        frames.append(frame.image)
+
+    return save_gif(frames, 0.08)

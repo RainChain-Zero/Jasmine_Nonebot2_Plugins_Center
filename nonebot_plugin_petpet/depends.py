@@ -1,9 +1,11 @@
+import re
 import shlex
 from io import BytesIO
 from typing import List, Optional
-from nonebot import logger
+from nonebot import get_driver, logger
 from nonebot.typing import T_State
 from nonebot.params import State, Depends, RegexDict
+from nonebot.rule import Rule
 from nonebot.adapters.mirai2 import (
     Bot,
     MessageChain,
@@ -24,6 +26,34 @@ from .download import download_url, download_avatar
 USERS_KEY = "USERS"
 SENDER_KEY = "SENDER"
 ARGS_KEY = "ARGS"
+REGEX_DICT = "REGEX_DICT"
+REGEX_ARG = "REGEX_ARG"
+
+
+def regex(pattern: str) -> Rule:
+    def checker(event: MessageEvent, state: T_State = State()) -> bool:
+        msg = event.get_message()
+        msg_seg: MessageSegment = msg[0]
+        if not msg_seg.is_text():
+            return False
+
+        seg_text = str(msg_seg).lstrip()
+        start = "|".join(get_driver().config.command_start)
+        matched = re.match(rf"(?:{start})(?:{pattern})", seg_text, re.IGNORECASE)
+        if not matched:
+            return False
+
+        new_msg = msg.copy()
+        seg_text = seg_text[matched.end() :].lstrip()
+        if seg_text:
+            new_msg[0].data["text"] = seg_text
+        else:
+            new_msg.pop(0)
+        state[REGEX_DICT] = matched.groupdict()
+        state[REGEX_ARG] = new_msg
+        return True
+
+    return Rule(checker)
 
 
 def is_qq(msg: str):
@@ -31,14 +61,14 @@ def is_qq(msg: str):
 
 
 def split_msg():
-    def dependency(
-        event: MessageEvent, state: T_State = State(), arg: dict = RegexDict()
-    ):
-        # msg = Message(arg["msg"])
-        #! 获取消息链
-        msg = event.get_message()
+    def dependency(event: MessageEvent, state: T_State = State()):
+
+        msg: MessageChain = state["REGEX_ARG"]
+
+
         users: List[UserInfo] = []
         args: List[str] = []
+
         for msg_seg in msg:
             if msg_seg.type == "At":
                 users.append(
@@ -74,14 +104,14 @@ def split_msg():
                         if text:
                             args.append(text)
         #! 删除触发指令command
-        args.remove(args[0])            
+        # args.remove(args[0])  
+
         sender = UserInfo(qq=str(event.sender.id))
         state[SENDER_KEY] = sender
         state[USERS_KEY] = users
         state[ARGS_KEY] = args
 
     return Depends(dependency)
-
 
 async def get_user_info(bot: Bot, user: UserInfo):
     if not user.qq:
@@ -92,11 +122,12 @@ async def get_user_info(bot: Bot, user: UserInfo):
             target=int(user.group), member_id=int(user.qq)
         )
         user.name = info.get("card", "") or info.get("nickname", "")
-        user.gender = info.get("sex", "")
+        user.gender = info.get("sex", "").lower()
     else:
         info = await bot.friend_profile(target=int(user.qq))
         user.name = info.get("nickname", "")
-        user.gender = info.get("sex", "")
+        user.gender = info.get("sex", "").lower()
+
 
 async def download_image(user: UserInfo):
     img = None
@@ -124,7 +155,7 @@ def Users(min_num: int = 1, max_num: int = 1):
 
 
 def User():
-    async def dependency(users= Users()):
+    async def dependency(users: Optional[List[UserInfo]] = Users()):
         if users:
             return users[0]
 
@@ -182,7 +213,8 @@ def Args(min_num: int = 1, max_num: int = 1):
 
 
 def RegexArg(key: str):
-    async def dependency(arg: dict = RegexDict()):
+    async def dependency(state: T_State = State()):
+        arg: dict = state[REGEX_DICT]
         return arg.get(key, None)
 
     return Depends(dependency)

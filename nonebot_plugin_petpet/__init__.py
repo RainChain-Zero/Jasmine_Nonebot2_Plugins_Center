@@ -1,14 +1,13 @@
 from .config import Config
 from .utils import Command
 from .data_source import commands
-from .depends import split_msg
+from .depends import regex, split_msg
 import base64
-import re
 import json
 from io import BytesIO
 from typing import Union
 
-from nonebot import get_driver, logger
+from nonebot import get_driver, logger, on_message
 from nonebot.params import Depends
 from nonebot.matcher import Matcher
 from nonebot.typing import T_Handler
@@ -36,14 +35,11 @@ def create_matchers():
         return handle
 
     for command in commands:
-        start = "|".join(get_driver().config.command_start)
-        regex = rf"^(?:{start})(?:{command.keyword})(?P<msg>.*)"
-        on_regex(
-            regex,
-            flags=re.S,
-            block=True,
+        on_message(
+            regex(command.pattern),
+            block=False,
             priority=12,
-        ).append_handler(handler=handler(command), parameterless=[split_msg()])
+        ).append_handler(handler(command), parameterless=[split_msg()])
 
 
 create_matchers()
