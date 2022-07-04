@@ -102,21 +102,18 @@ async def ascii2d_search(bot: Bot, url: str, bovm: Boolean) -> List:
     except:
         logger.error(f"ascii2d{name}引擎搜图失败！")
         nodelist = build_forward_message(
-            bot, MessageChain([MessageSegment.plain("f『×Error』ascii2d{name}搜图失败，请稍后再试")]), nodelist)
+            bot, MessageChain([MessageSegment.plain(f"『×Error』ascii2d{name}搜图失败，请稍后再试")]), nodelist)
     return nodelist
 
 
 async def ascii2d_search_main(bot: Bot, url: str) -> List:
     try:
-        loop = asyncio.get_event_loop()
-        color = asyncio.ensure_future(ascii2d_search(bot, url, False))
-        character = asyncio.ensure_future(ascii2d_search(bot, url, True))
-        # 并发执行色彩和特征检索
-        loop.run_until_complete(asyncio.gather(color, character))
         nodelist = forward_message_init(bot, "ascii2d")
-        color_forward = [{"type": "Forward", "nodeList": color.result()}]
+        color = await ascii2d_search(bot, url, False)
+        character = await ascii2d_search(bot, url, True)
+        color_forward = [{"type": "Forward", "nodeList": color}]
         character_forward = [
-            {"type": "Forward", "nodeList": character.result()}]
+            {"type": "Forward", "nodeList": character}]
         nodelist = build_forward_message(bot, color_forward, nodelist)
         nodelist = build_forward_message(bot, character_forward, nodelist)
     except:

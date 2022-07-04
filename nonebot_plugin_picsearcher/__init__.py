@@ -50,10 +50,10 @@ async def pic_search(bot: Bot,event: MessageEvent, matcher: Matcher):
     message = event.get_plaintext()
 
     if event.get_plaintext().startswith("/搜图"):
-        await matcher.finish("『×参数不足』您还未指定搜索引擎")
+        engine = "saucenao"
     else:
         engine = message[1:message.index("搜")].lower()
-        await bot.send(event=event, message=f"『◎请稍后』茉莉正在处理图片...当前引擎{engine}")
+    await bot.send(event=event, message=f"『◎请稍后』茉莉正在处理图片...当前引擎{engine}")
 
     if engine == "ascii2d":
         # 绕过QQ图片防盗链
