@@ -107,7 +107,7 @@ class CaiyunAi:
 
     async def post(self, url: str, **kwargs):
         resp = None
-        async with httpx.AsyncClient(proxies=caiyun_config.proxies) as client:
+        async with httpx.AsyncClient() as client:
             for i in range(3):
                 try:
                     resp = await client.post(url, timeout=60, **kwargs)

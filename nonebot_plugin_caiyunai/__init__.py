@@ -99,9 +99,17 @@ async def _(
     result = BuildImage(
         text2image(caiyunai.result, padding=(20, 20), max_width=800)
     ).save_jpg()
-    result = MessageChain([MessageSegment.image(
-        base64=base64.b64encode(result.getvalue()).decode())])
-    msgs = build_forward_message(bot, nickname, result, msgs)
+    res_forward = [{
+        "senderId": bot.self_id,
+        "time": 0,
+        "senderName": nickname,
+        "messageChain": MessageChain([MessageSegment.image(base64=base64.b64encode(result.getvalue()).decode())]),
+        "messageId": None
+    }]
+    result = MessageChain([MessageSegment.plain(caiyunai.result)])
+    res_forward = build_forward_message(bot,nickname,result,res_forward)
+    res_forward = [{"type": "Forward", "nodeList": res_forward}]
+    msgs = build_forward_message(bot, nickname, res_forward, msgs)
     for i, content in enumerate(caiyunai.contents, start=1):
         msg_chain = MessageChain([MessageSegment.plain(f"{i}、\n{content}")])
         msgs = build_forward_message(bot, nickname, msg_chain, msgs)
@@ -113,7 +121,6 @@ async def _(
     except:
         await novel.finish("『ERROR』消息发送失败，续写结束")
     await novel.reject()
-
 
 def build_forward_message(bot: Bot, nickname: str, msg_chain: MessageChain, nodelist: List) -> List:
     data = {
