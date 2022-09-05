@@ -43,7 +43,7 @@ async def reply_839968342_01(bot: Bot, event: MessageEvent):
         await bot.send(event=event, message=draw_special_reply(event.sender.id, "茉莉？", event), quote=event.source.id)
 
 #! 3449791431
-trigger_3449791431_01 = on_regex("呜呜呜")
+trigger_3449791431_01 = on_regex("^呜呜呜")
 
 
 @trigger_3449791431_01.handle()

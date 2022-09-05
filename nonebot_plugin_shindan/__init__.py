@@ -6,7 +6,7 @@ from nonebot.rule import Rule
 from nonebot.log import logger
 from nonebot.typing import T_State
 from nonebot import on_command, on_message
-from nonebot.params import  EventMessage, EventPlainText, State
+from nonebot.params import EventMessage, EventPlainText, State
 from nonebot.adapters.mirai2 import (
     Bot,
     MessageEvent,
@@ -19,7 +19,10 @@ from nonebot.adapters.mirai2 import (
 from .shindan_list import get_shindan_list
 from .shindanmaker import make_shindan
 
+from ..utils.data import read_favor
+
 cmd_ls = on_command('占卜列表', aliases={'可用占卜'}, block=True, priority=8)
+
 
 @cmd_ls.handle()
 async def _():
@@ -33,6 +36,7 @@ async def _():
         + '\n'.join([f"{s['command']}（{s['title']}）" for s in sd_list.values()])
     )
 
+
 def sd_handler() -> Rule:
     async def handle(
         bot: Bot,
@@ -42,11 +46,11 @@ def sd_handler() -> Rule:
         state: T_State = State(),
     ) -> bool:
         async def get_name(command: str) -> str:
-            name = msg_text[len(command) :].strip()
+            name = msg_text[len(command):].strip()
             if not name:
-                if isinstance(event,GroupMessage):
+                if isinstance(event, GroupMessage):
                     name = event.sender.name
-                elif isinstance(event,FriendMessage):
+                elif isinstance(event, FriendMessage):
                     name = event.sender.nickname
             return name
 
@@ -71,8 +75,8 @@ sd_matcher = on_message(sd_handler(), priority=9)
 
 
 @sd_matcher.handle()
-async def _(event:MessageEvent,state: T_State = State()):
-    if not judge_user_permission(event.sender.id):
+async def _(event: MessageEvent, state: T_State = State()):
+    if read_favor(event.sender.id) < 500:
         await sd_matcher.finish('『×条件未满足』此功能要求好感度≥500')
     id = state.get('id')
     name = state.get('name')
@@ -89,23 +93,9 @@ async def _(event:MessageEvent,state: T_State = State()):
         msgs = re.split(img_pattern, res)
         for msg in msgs:
             message.append(
-                MessageSegment.image(url=msg) if re.match(img_pattern, msg) else msg
+                MessageSegment.image(url=msg) if re.match(
+                    img_pattern, msg) else msg
             )
         await sd_matcher.finish(message)
     elif isinstance(res, bytes):
         await sd_matcher.finish(MessageSegment.image(base64=base64.b64encode(res).decode('utf8')))
-
-
-def judge_user_permission(qq: int) -> bool:
-    try:
-        f = open(f"/home/mirai/Dice3349795206/UserConfDir/{qq}/favorConf.json",
-                 "r", encoding="utf-8")
-    except:
-        return False
-    json_str = f.read()
-    f.close()
-    j = json.loads(json_str)
-    if(j.__contains__("好感度") and j["好感度"] >= 500):
-        return True
-    else:
-        return False

@@ -5,7 +5,7 @@ from nonebot import on_command, on_regex
 from nonebot.matcher import Matcher
 from nonebot.typing import T_Handler
 from nonebot.params import CommandArg
-from nonebot.adapters.mirai2 import MessageChain, MessageSegment,MessageEvent,FriendMessage
+from nonebot.adapters.mirai2 import MessageChain, MessageSegment, MessageEvent, FriendMessage
 
 from nonebot.adapters.onebot.v11 import unescape
 from nonebot.log import logger
@@ -16,6 +16,7 @@ from .utils import help_image, judge_user_permission
 from .normal_meme import normal_memes
 from .gif_subtitle_meme import gif_subtitle_memes
 
+from ..utils.data import read_favor
 
 __help__plugin_name__ = "memes"
 __des__ = "表情包制作"
@@ -72,12 +73,12 @@ async def handle(matcher: Matcher, meme: NormalMeme, text: str):
 
 def create_matchers():
     def create_handler(meme: NormalMeme) -> T_Handler:
-        async def handler(event:MessageEvent,matcher: Matcher, msg: MessageChain = CommandArg()):
+        async def handler(event: MessageEvent, matcher: Matcher, msg: MessageChain = CommandArg()):
             text = unescape(msg.extract_plain_text()).strip()
             if (not text):
                 await matcher.finish()
             else:
-                if(judge_user_permission(event.sender.id,500)):
+                if(read_favor(event.sender.id) >= 500):
                     await handle(matcher, meme, text)
                 else:
                     await matcher.finish("『×条件未满足』当前功能需要好感度≥500")
@@ -100,9 +101,10 @@ bwc_handle = on_command("bwc")
 five_k_handle = on_command("5000兆")
 zero_handle = on_regex("^/\\d+%")
 
+
 @ph_handle.handle()
 @bwc_handle.handle()
 @five_k_handle.handle()
 @zero_handle.handle()
-async def friend_handle(event:FriendMessage,matcher:Matcher):
+async def friend_handle(event: FriendMessage, matcher: Matcher):
     await matcher.finish("『×Error』/ph /bwc /5000兆 /0% 这几个生成图片的指令暂时只能在群聊中进行呢")

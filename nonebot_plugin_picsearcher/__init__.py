@@ -5,11 +5,13 @@ from nonebot.adapters.mirai2 import Bot, MessageEvent, GroupMessage, FriendMessa
 from nonebot.matcher import Matcher
 from nonebot.matcher import Matcher
 
-from .utils import download_pic,read_favor
+from .utils import download_pic
 
 from .functions import *
 
 import nest_asyncio
+
+from ..utils.data import read_favor
 # 允许嵌套loop
 nest_asyncio.apply()
 
@@ -35,10 +37,9 @@ all_command = on_command("搜图")
 @baidu_command.handle()
 @ehentai_command.handle()
 @all_command.handle()
-
-async def pic_search(bot: Bot,event: MessageEvent, matcher: Matcher):
+async def pic_search(bot: Bot, event: MessageEvent, matcher: Matcher):
     # 好感判断
-    if read_favor(event.sender.id)<2000:
+    if read_favor(event.sender.id) < 2000:
         await matcher.finish("『×条件未满足』此功能要求好感度≥2000哦~")
     # 提取图片
     try:

@@ -12,7 +12,7 @@ from .config import Config
 global_config = get_driver().config
 config = Config.parse_obj(global_config)
 
-proxies = "http://127.0.0.1:15732"
+proxies = "http://127.0.0.1:15777"
 
 
 async def get_pic_b64(url: str) -> str:
@@ -53,13 +53,13 @@ async def download_pic(url):
                 return fileName
 
 
-def read_favor(qq: int) -> int:
-    try:
-        f = open(config.favor_path+str(qq)+config.favor_conf,
-                 "r", encoding="utf-8")
-    except:
-        return 0
-    json_str = f.read()
-    f.close()
-    j = json.loads(json_str)
-    return j["好感度"] if j.__contains__("好感度") else 0
+# def read_favor(qq: int) -> int:
+#     try:
+#         f = open(config.favor_path+str(qq)+config.favor_conf,
+#                  "r", encoding="utf-8")
+#     except:
+#         return 0
+#     json_str = f.read()
+#     f.close()
+#     j = json.loads(json_str)
+#     return j["好感度"] if j.__contains__("好感度") else 0

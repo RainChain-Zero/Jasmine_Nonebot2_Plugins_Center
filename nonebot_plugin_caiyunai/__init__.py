@@ -18,6 +18,8 @@ from nonebot.adapters.mirai2 import (
     MessageSegment,
 )
 
+from ..utils.data import read_favor
+
 require("nonebot_plugin_imageutils")
 
 
@@ -133,13 +135,13 @@ def build_forward_message(bot: Bot, nickname: str, msg_chain: MessageChain, node
     nodelist.append(data)
     return nodelist
 
-def read_favor(qq: int) -> int:
-    try:
-        f = open(caiyun_config.favor_path+str(qq)+caiyun_config.favor_conf,
-                 "r", encoding="utf-8")
-    except:
-        return 0
-    json_str = f.read()
-    f.close()
-    j = json.loads(json_str)
-    return j["好感度"] if j.__contains__("好感度") else 0
+# def read_favor(qq: int) -> int:
+#     try:
+#         f = open(caiyun_config.favor_path+str(qq)+caiyun_config.favor_conf,
+#                  "r", encoding="utf-8")
+#     except:
+#         return 0
+#     json_str = f.read()
+#     f.close()
+#     j = json.loads(json_str)
+#     return j["好感度"] if j.__contains__("好感度") else 0

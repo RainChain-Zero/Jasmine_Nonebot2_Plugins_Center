@@ -14,6 +14,8 @@ from nonebot.typing import T_Handler
 from nonebot import on_command, require, on_regex
 from nonebot.adapters.mirai2 import MessageSegment, MessageEvent
 
+from ..utils.data import read_favor
+
 # require("nonebot_plugin_imageutils")
 
 
@@ -43,15 +45,3 @@ def create_matchers():
 
 
 create_matchers()
-
-
-def read_favor(qq: int) -> int:
-    try:
-        f = open(config.favor_path+str(qq)+config.favor_conf,
-                 "r", encoding="utf-8")
-    except:
-        return 0
-    json_str = f.read()
-    f.close()
-    j = json.loads(json_str)
-    return j["好感度"] if j.__contains__("好感度") else 0

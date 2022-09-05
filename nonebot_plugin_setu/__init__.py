@@ -5,7 +5,9 @@ from nonebot.adapters.mirai2 import MessageEvent, GroupMessage, MessageChain, Me
 
 from .config import Config
 
-from .utils import call_setu_api, judge_group_permission, judge_maxnum, judge_user_permission
+from .utils import call_setu_api, judge_group_permission, judge_maxnum
+
+from ..utils.data import read_favor
 
 global_config = get_driver().config
 config = Config.parse_obj(global_config)
@@ -27,14 +29,17 @@ async def send_setu_boom(bot: Bot, event: MessageEvent):
         num = 1
     if(not judge_maxnum(num)):
         await setu_boom.finish("『✖Error』一下太多对身体不好哦？")
-    if(not judge_user_permission(event.sender.id, 1)):
+    if(read_favor(event.sender.id) < 3000):
         await setu_boom.finish("『✖条件未满足』茉莉还不想给你看这些哦~(此功能好感要求>3000)")
     if(isinstance(event, GroupMessage) and not judge_group_permission(event.sender.group.id)):
         await setu_boom.finish("『✖群权限不足』茉莉并不觉得在这里这么做是安全的哦×(此功能需要向茉莉管理员申请许可)")
 
+    logger.info("yes")
+
     messagechain_list = call_setu_api(num)
 
     for messagechain in messagechain_list:
+        logger.info("succ")
         await setu_boom.send(messagechain)
 
 # 授权涩图
