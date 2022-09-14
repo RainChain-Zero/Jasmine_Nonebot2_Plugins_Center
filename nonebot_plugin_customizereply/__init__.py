@@ -2,7 +2,9 @@
 from email.quoprimime import quote
 from nonebot import Bot, on_message, on_regex, on_startswith
 from nonebot.adapters.mirai2 import FriendMessage, MessageEvent, GroupMessage
-from .utils import draw_normal_reply, draw_special_reply, read_favor
+from .utils import draw_normal_reply, draw_special_reply
+
+from ..utils.data import read_favor
 
 #! 1298754454
 trigger_1298754454_01 = on_startswith("...")
@@ -18,7 +20,7 @@ async def reply_1298754454_01(event: FriendMessage):
 #! 4786515
 trigger_4786515_01 = on_startswith("小姐")
 trigger_4786515_02 = on_startswith("茉莉看路灯")
-
+trigger_4786515_03 = on_startswith("小姐我们回来了")
 
 @trigger_4786515_01.handle()
 async def reply_4786515_01(event: MessageEvent):
@@ -30,6 +32,11 @@ async def reply_4786515_01(event: MessageEvent):
 async def reply_4786515_02(event: MessageEvent):
     if event.sender.id == 4786515:
         await trigger_4786515_02.finish(draw_special_reply(event.sender.id, "茉莉看路灯", event), quote=event.source.id)
+
+@trigger_4786515_03.handle()
+async def reply_4786515_03(event: MessageEvent):
+    if event.sender.id == 4786515:
+        await trigger_4786515_03.finish(draw_special_reply(event.sender.id, "小姐我们回来了", event), quote=event.source.id)
 
 #! 839968342
 trigger_839968342_01 = on_startswith("茉莉？")
