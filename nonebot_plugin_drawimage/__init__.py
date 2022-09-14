@@ -42,7 +42,7 @@ async def draw_pic_handle(bot: Bot, event: MessageEvent, state: T_State = State(
 async def draw_pic_got(bot: Bot, event: MessageEvent, state: T_State = State()):
     global Working
     index = str(state['style'])
-    if not str(state['style']).isdigit():
+    if not index.isdigit():
         await draw_pic.finish('『×参数错误』请输入正确的绘画风格编号')
     index = int(index)
     if index > len(Style) or index < 1:
@@ -51,8 +51,13 @@ async def draw_pic_got(bot: Bot, event: MessageEvent, state: T_State = State()):
     # 开始作图
     await draw_pic.send('开始作图，请稍后...这可能需要一段时间...')
     Working = True
-    rst = TextToImage.create(text=state['des'], style=str(style))
-    nodelist = await build_forward_pic_message(bot, rst['imgUrls'])
+    try:
+        rst = TextToImage.create(text=state['des'], style=str(style))
+        nodelist = await build_forward_pic_message(bot, rst['imgUrls'])
+    except Exception as e:
+        logger.error(e)
+        Working = False
+        await draw_pic.finish('『×作图失败』请检查文字是否符合要求或稍后再试')
     Working = False
     if isinstance(event, GroupMessage):
         await bot.send_group_message(target=event.sender.group.id, message_chain=[{"type": "Forward", "nodeList": nodelist}])
