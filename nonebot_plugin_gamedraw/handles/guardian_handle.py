@@ -7,7 +7,7 @@ from datetime import datetime
 from urllib.parse import unquote
 from typing import List, Optional, Tuple
 from pydantic import ValidationError
-from nonebot.adapters.mirai2 import MessageChain, MessageSegment
+from nonebot.adapters.onebot.v11 import Message, MessageSegment
 from nonebot.log import logger
 
 try:
@@ -135,14 +135,14 @@ class GuardianHandle(BaseHandle[GuardianData]):
             info = f"当前up池：{up_event.title}\n{info}"
         return info.strip()
 
-    def draw(self, count: int, pool_name: str, **kwargs) -> MessageChain:
+    def draw(self, count: int, pool_name: str, **kwargs) -> Message:
         index2card = self.get_cards(count, pool_name)
         cards = [card[0] for card in index2card]
         up_event = self.UP_CHAR if pool_name == "char" else self.UP_ARMS
         up_list = [x.name for x in up_event.up_char] if up_event else []
         result = self.format_result(index2card, up_list=up_list)
         pool_info = self.format_pool_info(pool_name)
-        return pool_info + MessageSegment.image(None,None,None,self.generate_img(cards).pic2bs4()) + result
+        return pool_info + MessageSegment.image(self.generate_img(cards).pic2bs4()) + result
 
     def generate_card_img(self, card: GuardianData) -> BuildImage:
         sep_w = 1
@@ -388,8 +388,8 @@ class GuardianHandle(BaseHandle[GuardianData]):
         except Exception as e:
             logger.warning(f"{self.game_name_cn}UP更新出错 {type(e)}：{e}")
 
-    async def _reload_pool(self) -> Optional[MessageChain]:
+    async def _reload_pool(self) -> Optional[Message]:
         await self.update_up_char()
         self.load_up_char()
         if self.UP_CHAR and self.UP_ARMS:
-            return MessageChain(f"重载成功！\n当前UP池子：{self.UP_CHAR.title}")
+            return Message(f"重载成功！\n当前UP池子：{self.UP_CHAR.title}")

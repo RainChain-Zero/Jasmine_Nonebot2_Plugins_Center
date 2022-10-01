@@ -8,7 +8,7 @@ from datetime import datetime
 from pydantic import BaseModel, Extra
 from asyncio.exceptions import TimeoutError
 from typing import Dict, List, Optional, TypeVar, Generic, Tuple
-from nonebot.adapters.mirai2 import MessageChain, MessageSegment
+from nonebot.adapters.onebot.v11 import Message, MessageSegment
 from nonebot.log import logger
 
 try:
@@ -65,11 +65,11 @@ class BaseHandle(Generic[TC]):
         self.up_path.mkdir(parents=True, exist_ok=True)
         self.data_files: List[str] = [f"{self.game_name}.json"]
 
-    def draw(self, count: int, **kwargs) -> MessageChain:
+    def draw(self, count: int, **kwargs) -> Message:
         index2card = self.get_cards(count, **kwargs)
         cards = [card[0] for card in index2card]
         result = self.format_result(index2card)
-        return MessageSegment.image(None,None,None,self.generate_img(cards).pic2bs4()) + result
+        return MessageSegment.image(self.generate_img(cards).pic2bs4()) + result
 
     # 抽取卡池
     def get_card(self, **kwargs) -> TC:
@@ -227,7 +227,7 @@ class BaseHandle(Generic[TC]):
         try:
             self._init_data()
         except Exception as e:
-            logger.warning(f"{self.game_name_cn} 导入角色数据错误了：{type(e)}：{e}")
+            logger.warning(f"{self.game_name_cn} 导入角色数据错误：{type(e)}：{e}")
 
     async def _update_info(self):
         raise NotImplementedError
@@ -245,7 +245,7 @@ class BaseHandle(Generic[TC]):
                     self.session = session
                     await self._update_info()
         except Exception as e:
-            logger.warning(f"{self.game_name_cn} 更新数据错误了：{type(e)}：{e}")
+            logger.warning(f"{self.game_name_cn} 更新数据错误：{type(e)}：{e}")
         self.init_data()
 
     async def get_url(self, url: str) -> str:
@@ -257,7 +257,7 @@ class BaseHandle(Generic[TC]):
                     result = await response.text()
                 break
             except TimeoutError:
-                logger.warning(f"访问 {url} 超时了, 重试 {i + 1}/{retry}")
+                logger.warning(f"访问 {url} 超时, 重试 {i + 1}/{retry}")
                 await asyncio.sleep(1)
         return result
 
@@ -271,22 +271,22 @@ class BaseHandle(Generic[TC]):
                     await f.write(await response.read())
             return True
         except TimeoutError:
-            logger.warning(f"下载 {self.game_name_cn} 图片超时了，名称：{name}，url：{url}")
+            logger.warning(f"下载 {self.game_name_cn} 图片超时，名称：{name}，url：{url}")
             return False
         except:
-            logger.warning(f"下载 {self.game_name_cn} 链接错误了，名称：{name}，url：{url}")
+            logger.warning(f"下载 {self.game_name_cn} 链接错误，名称：{name}，url：{url}")
             return False
 
-    async def _reload_pool(self) -> Optional[MessageChain]:
+    async def _reload_pool(self) -> Optional[Message]:
         return None
 
-    async def reload_pool(self) -> Optional[MessageChain]:
+    async def reload_pool(self) -> Optional[Message]:
         try:
             async with self.client() as session:
                 self.session = session
                 return await self._reload_pool()
         except Exception as e:
-            logger.warning(f"{self.game_name_cn} 重载UP池错误了：{type(e)}：{e}")
+            logger.warning(f"{self.game_name_cn} 重载UP池错误：{type(e)}：{e}")
 
     def reset_count(self, user_id: int) -> bool:
         return False

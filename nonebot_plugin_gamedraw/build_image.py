@@ -164,4 +164,4 @@ class BuildImage:
     def pic2bs4(self):
         buf = BytesIO()
         self.markImg.save(buf, format="PNG")
-        return f"{base64.b64encode(buf.getvalue()).decode()}"
+        return f"base64://{base64.b64encode(buf.getvalue()).decode()}"

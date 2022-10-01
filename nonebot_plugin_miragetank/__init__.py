@@ -1,9 +1,10 @@
 import base64
 
 from nonebot import on_command
-from nonebot.adapters.mirai2 import Bot, MessageChain, MessageSegment, MessageEvent
+from nonebot.adapters.onebot.v11 import Bot, Message, MessageSegment, MessageEvent
 from nonebot.params import CommandArg, State
 from nonebot.typing import T_State
+from nonebot.log import logger
 
 from .data_source import color_car, get_img, gray_car
 
@@ -17,14 +18,13 @@ async def handle_first(
     bot: Bot,
     event: MessageEvent,
     state: T_State = State(),
-    args: MessageChain = CommandArg(),
+    args: Message = CommandArg(),
 ):
     images = []
     for seg in args:
-        print(seg)
-        if seg.type == "Plain":
+        if seg.type == "text":
             state["mod"] = seg.data["text"].strip()
-        elif seg.type == "Image":
+        elif seg.type == "image":
             images.append(seg)
     if len(images) >= 1:
         state["img1"] = images[0]
@@ -47,7 +47,7 @@ async def get_images(state: T_State = State()):
     imgs = []
     mod = str(state["mod"])
     for seg in state["img1"] + state["img2"]:
-        if seg.type != "Image":
+        if seg.type != "image":
             await mirage_tank.reject("『ERROR』无法找到两张图片，不要逗我玩哦×")
         imgs.append(await get_img(seg.data["url"]))
 
@@ -59,7 +59,4 @@ async def get_images(state: T_State = State()):
     elif mod == "color":
         res = await color_car(imgs[0], imgs[1])
     if res:
-        await mirage_tank.finish(
-            MessageSegment.image(base64=base64.b64encode(res.getvalue()).decode()
-            )
-        )
+        await mirage_tank.finish(MessageSegment.image(res))

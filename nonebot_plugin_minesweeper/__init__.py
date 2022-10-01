@@ -12,16 +12,15 @@ from nonebot.rule import ArgumentParser
 from nonebot.exception import ParserExit
 from nonebot import on_command, on_shell_command
 from nonebot.params import ShellCommandArgv, Command, RawCommand, CommandArg
-from nonebot.adapters.mirai2 import (
+from nonebot.adapters.onebot.v11 import (
     MessageEvent,
-    GroupMessage,
-    MessageChain,
+    GroupMessageEvent,
+    Message,
     MessageSegment,
 )
 
 from .data_source import MineSweeper, GameState, OpenResult, MarkResult
 from .utils import skin_list
-
 
 
 parser = ArgumentParser("minesweeper", description="扫雷")
@@ -52,7 +51,8 @@ class Options:
 games: Dict[str, MineSweeper] = {}
 timers: Dict[str, TimerHandle] = {}
 
-minesweeper = on_shell_command("minesweeper", parser=parser, block=True, priority=13)
+minesweeper = on_shell_command(
+    "minesweeper", parser=parser, block=True, priority=13)
 
 
 @minesweeper.handle()
@@ -64,9 +64,9 @@ async def _(
 
 def get_cid(event: MessageEvent):
     return (
-        f"group_{event.sender.group}"
-        if isinstance(event, GroupMessage)
-        else f"private_{event.sender.id}"
+        f"group_{event.group_id}"
+        if isinstance(event, GroupMessageEvent)
+        else f"private_{event.sender.user_id}"
     )
 
 
@@ -86,7 +86,7 @@ def shortcut(cmd: str, argv: List[str] = [], **kwargs):
     command = on_command(cmd, **kwargs, block=True, priority=12)
 
     @command.handle()
-    async def _(matcher: Matcher, event: MessageEvent, msg: MessageChain = CommandArg()):
+    async def _(matcher: Matcher, event: MessageEvent, msg: Message = CommandArg()):
         try:
             args = shlex.split(msg.extract_plain_text().strip())
         except:
@@ -96,11 +96,14 @@ def shortcut(cmd: str, argv: List[str] = [], **kwargs):
 
 shortcut("扫雷", ["--row", "8", "--col", "8", "--num", "10"], rule=smart_to_me)
 shortcut("扫雷初级", ["--row", "8", "--col", "8", "--num", "10"], rule=smart_to_me)
-shortcut("扫雷中级", ["--row", "16", "--col", "16", "--num", "40"], rule=smart_to_me)
-shortcut("扫雷高级", ["--row", "16", "--col", "30", "--num", "99"], rule=smart_to_me)
+shortcut("扫雷中级", ["--row", "16", "--col", "16",
+         "--num", "40"], rule=smart_to_me)
+shortcut("扫雷高级", ["--row", "16", "--col", "30",
+         "--num", "99"], rule=smart_to_me)
 shortcut("挖开", ["--open"], aliases={"open", "wk"}, rule=game_running)
 shortcut("标记", ["--mark"], aliases={"mark", "bj"}, rule=game_running)
-shortcut("查看游戏", ["--show"], aliases={"查看游戏盘", "显示游戏", "显示游戏盘"}, rule=game_running)
+shortcut("查看游戏", ["--show"],
+         aliases={"查看游戏盘", "显示游戏", "显示游戏盘"}, rule=game_running)
 shortcut("结束", ["--stop"], aliases={"停", "停止游戏", "结束游戏"}, rule=game_running)
 
 add_player = on_command("添加人员", aliases={"添加玩家"}, rule=game_running)
@@ -111,7 +114,7 @@ def is_qq(msg: str):
 
 
 @add_player.handle()
-async def _(matcher: Matcher, event: MessageEvent, msg: MessageChain = CommandArg()):
+async def _(matcher: Matcher, event: MessageEvent, msg: Message = CommandArg()):
     args = []
     for seg in msg["At"]:
         args.append(str(seg.data["target"]))
@@ -150,11 +153,11 @@ async def handle_minesweeper(matcher: Matcher, event: MessageEvent, argv: List[s
     ) -> NoReturn:
         if not (message or image):
             await matcher.finish()
-        msg = MessageChain([])
+        msg = Message([])
         if message:
             msg.append(message)
         if image:
-            msg.append(MessageSegment.image(base64=base64.b64encode(image.getvalue()).decode('utf8')))
+            msg.append(MessageSegment.image(image))
         await matcher.finish(msg)
 
     try:
@@ -186,7 +189,7 @@ async def handle_minesweeper(matcher: Matcher, event: MessageEvent, argv: List[s
 
         game = MineSweeper(options.row, options.col, options.num, options.skin)
         games[cid] = game
-        games[cid].players.append(event.sender.id)
+        games[cid].players.append(event.sender.user_id)
         set_timeout(matcher, cid)
 
         await send(help_msg, game.draw())
@@ -197,7 +200,7 @@ async def handle_minesweeper(matcher: Matcher, event: MessageEvent, argv: List[s
     if options.show:
         await send(image=game.draw())
 
-    if event.sender.id not in game.players:
+    if event.sender.user_id not in game.players:
         await send("『ERROR』你不在本局游戏白名单中哦")
 
     if options.stop:

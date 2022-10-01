@@ -117,17 +117,17 @@ class CaiyunAi:
                     logger.warning(f"Error in post {url}, retry {i}/3")
                     continue
         if not resp or resp.status_code != 200:
-            raise NetworkError("『ERROR』网络出现错误了...")
+            raise NetworkError("网络错误")
         result = resp.json()
         if result["status"] == 0:
             return result
         elif result["status"] == -1:
-            raise AccountError("『ERROR』账号不存在，请更换apikey！")
+            raise AccountError("账号不存在，请更换apikey！")
         elif result["status"] == -6:
-            raise AccountError("『ERROR』账号已被封禁，请更换apikey！")
+            raise AccountError("账号已被封禁，请更换apikey！")
         elif result["status"] == -5:
             raise ContentError(
-                "『WARNING』存在不和谐内容，类型：{}，剩余血量：{}".format(
+                "存在不和谐内容，类型：{}，剩余血量：{}".format(
                     result["data"]["label"],
                     result["data"]["total_count"] - result["data"]["shut_count"],
                 )

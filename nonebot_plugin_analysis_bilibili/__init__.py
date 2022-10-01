@@ -1,11 +1,7 @@
 import re
-from .analysis_bilibili import b23_extract, bili_keyword
-from nonebot import get_driver, on_regex
-from nonebot.adapters.mirai2 import MessageEvent,GroupMessage,FriendMessage
-from .config import Config
-
-global_config = get_driver().config
-config = Config.parse_obj(global_config)
+from nonebot import on_regex, logger
+from nonebot.adapters import Event
+from .analysis_bilibili import config, b23_extract, bili_keyword
 
 analysis_bili = on_regex(
     r"(b23.tv)|(bili(22|23|33|2233).cn)|(.bilibili.com)|(^(av|cv)(\d+))|(^BV([a-zA-Z0-9]{10})+)|"
@@ -13,21 +9,21 @@ analysis_bili = on_regex(
     flags=re.I,
 )
 
+blacklist = getattr(config, "analysis_blacklist", [])
+
 
 @analysis_bili.handle()
-async def analysis_main(event: MessageEvent) -> None:
-    #! 跳过不解析的群
-    if isinstance(event,GroupMessage) and event.sender.group.id in config.group_ignore:
-        await analysis_bili.finish()
-
-    text = str(event.get_message()).strip()
+async def analysis_main(event: Event) -> None:
+    text = str(event.message).strip()
+    if blacklist and int(event.get_user_id()) in blacklist:
+        return
     if re.search(r"(b23.tv)|(bili(22|23|33|2233).cn)", text, re.I):
         # 提前处理短链接，避免解析到其他的
         text = await b23_extract(text)
-    if isinstance(event,GroupMessage):
-        group_id = event.sender.id
-    elif isinstance(event,FriendMessage):
-        group_id = event.sender.id
+    if hasattr(event, "group_id"):
+        group_id = event.group_id
+    elif hasattr(event, "channel_id"):
+        group_id = event.channel_id
     else:
         group_id = None
     msg = await bili_keyword(group_id, text)
@@ -35,6 +31,6 @@ async def analysis_main(event: MessageEvent) -> None:
         try:
             await analysis_bili.send(msg)
         except:
-            await analysis_bili.send("茉莉检测到风控风险，正在去除简介...")
+            logger.warning(f"{msg}\n此次解析可能被风控，尝试去除简介后发送！")
             msg = re.sub(r"简介.*", "", msg)
             await analysis_bili.send(msg)

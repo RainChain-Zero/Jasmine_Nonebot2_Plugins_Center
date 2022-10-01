@@ -1,12 +1,13 @@
 import json
 from pathlib import Path
-from nonebot.adapters.mirai2 import MessageChain,MessageEvent,MessageSegment
+from nonebot.adapters.onebot.v11 import Message, MessageEvent, MessageSegment
 from nonebot import on_command
 from nonebot.params import CommandArg
 from .utils import get_message_img, is_chinese
 from .image_utils import BuildImage
 from .http_utils import AsyncHttpx
 from .path_config import TEMP_PATH
+from ..utils.data import read_favor
 # ZH_CN2EN 中文　»　英语
 # ZH_CN2JA 中文　»　日语
 # ZH_CN2KR 中文　»　韩语
@@ -26,43 +27,29 @@ __plugin_usage__ = """
 usage：
     将图片黑白化并配上中文与日语
     指令：
-        bwj [文本] [图片]
+        /bwj [文本] [图片]
 """.strip()
 __plugin_des__ = "为设想过得黑白草图"
-__plugin_cmd__ = ["bwj"]
+__plugin_cmd__ = ["/bwj"]
 __plugin_version__ = 0.1
 __plugin_author__ = "HibiKier"
 __plugin_settings__ = {
     "level": 5,
     "default_status": True,
     "limit_superuser": False,
-    "cmd": ["黑白图", "bwj"],
+    "cmd": ["黑白图", "/bwj"],
 }
 
 #! 用户数据文件夹
 conf_path = "/home/mirai/Dice3349795206/UserConfDir"
 
-def judge_user_permission(qq: int, limit:int) -> bool:
-    try:
-        f = open(f"{conf_path}/{qq}/favorConf.json",
-                 "r", encoding="utf-8")
-    except:
-        return False
-    json_str = f.read()
-    f.close()
-    j = json.loads(json_str)
-    if(j.__contains__("好感度") and j["好感度"] >= limit):
-        return True
-    else:
-        return False
+
 w2b_img = on_command("bwj", priority=5, block=True)
 
 
-
 @w2b_img.handle()
-async def _(event: MessageEvent, arg: MessageChain = CommandArg()):
-    # try:
-    if(not judge_user_permission(event.sender.id,500)):
+async def _(event: MessageEvent, arg: Message = CommandArg()):
+    if(read_favor(event.sender.user_id) < 500):
         w2b_img.finish("『×条件未满足』此功能需要好感度≥500")
     img = get_message_img(event.json())
     msg = arg.extract_plain_text().strip()
@@ -70,11 +57,12 @@ async def _(event: MessageEvent, arg: MessageChain = CommandArg()):
         await w2b_img.finish(f"『×格式错误』：\n" + __plugin_usage__)
     img = img[0]
     if not await AsyncHttpx.download_file(
-        img, TEMP_PATH / f"{event.sender.id}_w2b.png"
+        img, TEMP_PATH / f"{event.sender.user_id}_w2b.png"
     ):
         await w2b_img.finish("『×Error』下载图片失败啦——稍后再试吧")
     msg = await get_translate(msg)
-    w2b = BuildImage(0, 0, background=TEMP_PATH / f"{event.sender.id}_w2b.png")
+    w2b = BuildImage(0, 0, background=TEMP_PATH /
+                     f"{event.sender.user_id}_w2b.png")
     w2b.convert("L")
     msg_sp = msg.split("<|>")
     w, h = w2b.size
@@ -94,7 +82,8 @@ async def _(event: MessageEvent, arg: MessageChain = CommandArg()):
         add_h = add_h * ratio
         bg.resize(ratio)
         centered_text(bg, msg, add_h)
-    await w2b_img.send(MessageSegment.image(base64=bg.pic2bs4()))
+    img_b64 = bg.pic2bs4()
+    await w2b_img.send(MessageSegment.image(img_b64 if "base64://" in img_b64 else "base64://" + img_b64))
 
 
 def centered_text(img: BuildImage, text: str, add_h: int):

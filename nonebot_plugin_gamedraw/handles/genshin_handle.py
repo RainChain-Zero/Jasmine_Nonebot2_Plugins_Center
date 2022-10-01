@@ -6,7 +6,7 @@ from urllib.parse import unquote
 from typing import List, Optional, Tuple
 from pydantic import ValidationError
 from datetime import datetime, timedelta
-from nonebot.adapters.mirai2 import MessageChain, MessageSegment
+from nonebot.adapters.onebot.v11 import Message, MessageSegment
 from nonebot.log import logger
 
 try:
@@ -95,13 +95,10 @@ class GenshinHandle(BaseHandle[GenshinData]):
             if random.random() < 0.5 or is_up:
                 up_name = random.choice(up_list)
                 try:
-                    acquire_char = [
-                        x for x in all_list if x.name == up_name][0]
+                    acquire_char = [x for x in all_list if x.name == up_name][0]
                 except IndexError:
                     pass
         if not acquire_char:
-            if not all_list:
-                logger.warning("node")
             chars = [x for x in all_list if x.star == star and not x.limited]
             acquire_char = random.choice(chars)
         return acquire_char
@@ -130,8 +127,7 @@ class GenshinHandle(BaseHandle[GenshinData]):
                         pool_name, 3, add, count_manager.is_up(user_id)
                     )
             else:
-                card = self.get_card(
-                    pool_name, 1, add, count_manager.is_up(user_id))
+                card = self.get_card(pool_name, 1, add, count_manager.is_up(user_id))
             # print(f"{count_manager.get_user_count(user_id)}：",
             # count_manager.get_user_five_index(user_id), star, card.star, add)
             # 四星角色
@@ -158,8 +154,7 @@ class GenshinHandle(BaseHandle[GenshinData]):
         frame_h = 132
         img_w = 106
         img_h = 106
-        bg = BuildImage(frame_w + sep_w * 2, frame_h +
-                        sep_h * 2, color="#EBEBEB")
+        bg = BuildImage(frame_w + sep_w * 2, frame_h + sep_h * 2, color="#EBEBEB")
         frame_path = str(self.img_path / "avatar_frame.png")
         frame = Image.open(frame_path)
         # 加名字
@@ -187,8 +182,7 @@ class GenshinHandle(BaseHandle[GenshinData]):
         star = Image.open(star_path)
         bg.paste(frame, (sep_w, sep_h), alpha=True)
         bg.paste(img, (sep_w + 3, sep_h + 3), alpha=True)
-        bg.paste(star, (sep_w + int((frame_w - star.width) / 2),
-                 sep_h - 6), alpha=True)
+        bg.paste(star, (sep_w + int((frame_w - star.width) / 2), sep_h - 6), alpha=True)
         return bg
 
     def format_pool_info(self, pool_name: str) -> str:
@@ -208,7 +202,7 @@ class GenshinHandle(BaseHandle[GenshinData]):
             info = f"当前up池：{up_event.title}\n{info}"
         return info.strip()
 
-    def draw(self, count: int, user_id: int, pool_name: str = "", **kwargs) -> MessageChain:
+    def draw(self, count: int, user_id: int, pool_name: str = "", **kwargs) -> Message:
         index2cards = self.get_cards(count, user_id, pool_name)
         cards = [card[0] for card in index2cards]
         up_event = None
@@ -223,14 +217,14 @@ class GenshinHandle(BaseHandle[GenshinData]):
             if (max_star_str := self.format_max_star(index2cards, up_list=up_list))
             else ""
         )
-        result += f"\n距离保底还剩 {self.count_manager.get_user_guarantee_count(user_id)} 抽"
+        result += f"\n距离保底发还剩 {self.count_manager.get_user_guarantee_count(user_id)} 抽"
         # result += "\n【五星：0.6%，四星：5.1%，第72抽开始五星概率每抽加0.585%】"
         pool_info = self.format_pool_info(pool_name)
         img = self.generate_img(cards)
         bk = BuildImage(img.w, img.h + 50, font_size=20, color="#ebebeb")
         bk.paste(img)
         bk.text((0, img.h + 10), "【五星：0.6%，四星：5.1%，第72抽开始五星概率每抽加0.585%】")
-        return pool_info + MessageSegment.image(None, None, None, bk.pic2bs4()) + result
+        return pool_info + MessageSegment.image(bk.pic2bs4()) + result
 
     def _init_data(self):
         self.ALL_CHAR = [
@@ -254,8 +248,7 @@ class GenshinHandle(BaseHandle[GenshinData]):
 
     def load_up_char(self):
         try:
-            data = self.load_data(
-                f"draw_card_up/{self.game_name}_up_char.json")
+            data = self.load_data(f"draw_card_up/{self.game_name}_up_char.json")
             self.UP_CHAR = UpEvent.parse_obj(data.get("char", {}))
             self.UP_ARMS = UpEvent.parse_obj(data.get("arms", {}))
         except ValidationError:
@@ -375,10 +368,8 @@ class GenshinHandle(BaseHandle[GenshinData]):
         try:
             for index, table in enumerate(tables):
                 title = table.xpath("./tr[1]/th/img/@title")[0]
-                title = str(title).split("」")[
-                    0] + "」" if "」" in title else title
-                pool_img = str(table.xpath(
-                    "./tr[1]/th/img/@srcset")[0]).split(" ")[-2]
+                title = str(title).split("」")[0] + "」" if "」" in title else title
+                pool_img = str(table.xpath("./tr[1]/th/img/@srcset")[0]).split(" ")[-2]
                 time = table.xpath("./tr[2]/td/text()")[0]
                 star5_list = table.xpath("./tr[3]/td/a/@title")
                 star4_list = table.xpath("./tr[4]/td/a/@title")
@@ -418,8 +409,15 @@ class GenshinHandle(BaseHandle[GenshinData]):
         self.count_manager.reset(user_id)
         return True
 
-    async def _reload_pool(self) -> Optional[MessageChain]:
+    async def _reload_pool(self) -> Optional[Message]:
         await self.update_up_char()
         self.load_up_char()
         if self.UP_CHAR and self.UP_ARMS:
-            return "重载成功了！\n当前UP池子："+MessageSegment.plain(self.UP_CHAR.title)
+            return Message(
+                Message.template("重载成功！\n当前UP池子：{} & {}{:image}{:image}").format(
+                    self.UP_CHAR.title,
+                    self.UP_ARMS.title,
+                    self.UP_CHAR.pool_img,
+                    self.UP_ARMS.pool_img,
+                )
+            )

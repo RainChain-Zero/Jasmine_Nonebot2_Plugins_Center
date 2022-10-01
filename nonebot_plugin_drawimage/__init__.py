@@ -1,11 +1,11 @@
 from nonebot import get_driver, on_command, logger
-from nonebot.adapters.mirai2 import Bot, MessageEvent, GroupMessage, FriendMessage
+from nonebot.adapters.onebot.v11 import Bot, MessageEvent, MessageSegment
 from nonebot.typing import T_State
 from nonebot.params import State
 from .config import Config
 
 from ..utils.data import read_favor
-from ..utils.message import build_forward_pic_message
+from ..utils.message import *
 
 # 引入作图api工具包
 import wenxin_api
@@ -21,14 +21,16 @@ wenxin_api.sk = config.secret_key
 # 当前是否有处理任务
 Working = False
 # 作画风格
-Style = ['水彩', '油画', '粉笔画', '卡通', '蜡笔画', '儿童画']
+Style = ["古风", '油画', '水彩画', '卡通画', '二次元', '浮世绘',
+         "蒸汽波艺术", "low poly", "像素风格", "概念艺术", "未来主义", "赛博朋克",
+         "写实风格", "洛丽塔风格", "巴洛克风格", "超现实主义"]
 
 draw_pic = on_command('作图')
 
 
 @draw_pic.handle()
 async def draw_pic_handle(bot: Bot, event: MessageEvent, state: T_State = State()):
-    if read_favor(event.sender.id) < 3000:
+    if read_favor(event.sender.user_id) < 3000:
         await draw_pic.finish("『×条件未满足』此功能要求好感度≥3000")
     if Working:
         await draw_pic.finish("『×当前有任务正在进行中』请稍后再试")
@@ -38,7 +40,8 @@ async def draw_pic_handle(bot: Bot, event: MessageEvent, state: T_State = State(
     state['des'] = des
 
 
-@draw_pic.got('style', prompt='请选择绘画风格，仅输入编号\n1.水彩\n2.油画\n3.粉笔画\n4.卡通\n5.蜡笔画\n6.儿童画')
+@draw_pic.got('style', prompt='请选择绘画风格，仅输入编号\n1.古风\n2.油画\n3.水彩画\n4.卡通画\n5.二次元\n6.浮世绘\n'
+              '7.蒸汽波艺术\n8.low poly\n9.像素风格\n10.概念艺术\n11.未来主义\n12.赛博朋克\n13.写实风格\n14.洛丽塔风格\n15.巴洛克风格\n16.超现实主义')
 async def draw_pic_got(bot: Bot, event: MessageEvent, state: T_State = State()):
     global Working
     index = str(state['style'])
@@ -53,13 +56,11 @@ async def draw_pic_got(bot: Bot, event: MessageEvent, state: T_State = State()):
     Working = True
     try:
         rst = TextToImage.create(text=state['des'], style=str(style))
-        nodelist = await build_forward_pic_message(bot, rst['imgUrls'])
+        msgs = [MessageSegment.image(await get_img(img_url))
+                for img_url in rst['imgUrls']]
     except Exception as e:
         logger.error(e)
         Working = False
         await draw_pic.finish('『×作图失败』请检查文字是否符合要求或稍后再试')
     Working = False
-    if isinstance(event, GroupMessage):
-        await bot.send_group_message(target=event.sender.group.id, message_chain=[{"type": "Forward", "nodeList": nodelist}])
-    elif isinstance(event, FriendMessage):
-        await bot.send_friend_message(target=event.sender.id, message_chain=[{"type": "Forward", "nodeList": nodelist}])
+    await send_forward_msg(bot, event, "茉莉", bot.self_id, msgs)

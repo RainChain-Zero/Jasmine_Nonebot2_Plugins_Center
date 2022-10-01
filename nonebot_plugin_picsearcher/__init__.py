@@ -1,10 +1,10 @@
 
 import os
 from nonebot import logger, on_command
-from nonebot.adapters.mirai2 import Bot, MessageEvent, GroupMessage, FriendMessage, MessageChain, MessageSegment
+from nonebot.adapters.onebot.v11 import Bot, MessageEvent
 from nonebot.matcher import Matcher
 from nonebot.matcher import Matcher
-
+from nonebot.log import logger
 from .utils import download_pic
 
 from .functions import *
@@ -12,6 +12,7 @@ from .functions import *
 import nest_asyncio
 
 from ..utils.data import read_favor
+from ..utils.message import send_forward_msg
 # 允许嵌套loop
 nest_asyncio.apply()
 
@@ -39,11 +40,12 @@ all_command = on_command("搜图")
 @all_command.handle()
 async def pic_search(bot: Bot, event: MessageEvent, matcher: Matcher):
     # 好感判断
-    if read_favor(event.sender.id) < 2000:
+    if read_favor(event.sender.user_id) < 2000:
         await matcher.finish("『×条件未满足』此功能要求好感度≥2000哦~")
     # 提取图片
     try:
-        img_url = event.get_message()["Image", 0].data["url"]
+        img_url = event.get_message()["image", 0].data["url"]
+        logger.info(img_url)
     except:
         await matcher.finish(f"『×参数不足』当前消息中没有图片哦~")
 
@@ -56,6 +58,7 @@ async def pic_search(bot: Bot, event: MessageEvent, matcher: Matcher):
         engine = message[1:message.index("搜")].lower()
     await bot.send(event=event, message=f"『◎请稍后』茉莉正在处理图片...当前引擎{engine}")
 
+    logger.info(f"搜图引擎：{engine}")
     if engine == "ascii2d":
         # 绕过QQ图片防盗链
         nodelist = await ascii2d_search_main(bot, f"https://images.weserv.nl/?url={img_url}")
@@ -66,8 +69,4 @@ async def pic_search(bot: Bot, event: MessageEvent, matcher: Matcher):
         file.close()
         if os.path.exists(fileName):
             os.remove(fileName)
-
-    if isinstance(event, GroupMessage):
-        await bot.send_group_message(target=event.sender.group.id, message_chain=[{"type": "Forward", "nodeList": nodelist}])
-    elif isinstance(event, FriendMessage):
-        await bot.send_friend_message(target=event.sender.id, message_chain=[{"type": "Forward", "nodeList": nodelist}])
+    await send_forward_msg(bot, event, '茉莉', bot.self_id, nodelist)

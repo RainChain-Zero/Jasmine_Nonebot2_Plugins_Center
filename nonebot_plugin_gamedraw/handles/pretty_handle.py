@@ -8,7 +8,7 @@ from datetime import datetime
 from urllib.parse import unquote
 from typing import List, Optional, Tuple
 from pydantic import ValidationError
-from nonebot.adapters.mirai2 import MessageChain, MessageSegment
+from nonebot.adapters.onebot.v11 import Message, MessageSegment
 from nonebot.log import logger
 
 try:
@@ -128,7 +128,7 @@ class PrettyHandle(BaseHandle[PrettyData]):
             info = f"当前up池：{up_event.title}\n{info}"
         return info.strip()
 
-    def draw(self, count: int, pool_name: str, **kwargs) -> MessageChain:
+    def draw(self, count: int, pool_name: str, **kwargs) -> Message:
         pool_name = "char" if not pool_name else pool_name
         index2card = self.get_cards(count, pool_name)
         cards = [card[0] for card in index2card]
@@ -136,7 +136,7 @@ class PrettyHandle(BaseHandle[PrettyData]):
         up_list = [x.name for x in up_event.up_char] if up_event else []
         result = self.format_result(index2card, up_list=up_list)
         pool_info = self.format_pool_info(pool_name)
-        return pool_info + MessageSegment.image(None,None,None,self.generate_img(cards).pic2bs4()) + result
+        return pool_info + MessageSegment.image(self.generate_img(cards).pic2bs4()) + result
 
     def generate_card_img(self, card: PrettyData) -> BuildImage:
         if isinstance(card, PrettyChar):
@@ -409,8 +409,14 @@ class PrettyHandle(BaseHandle[PrettyData]):
         except Exception as e:
             logger.warning(f"{self.game_name_cn}UP更新出错 {type(e)}：{e}")
 
-    async def _reload_pool(self) -> Optional[MessageChain]:
+    async def _reload_pool(self) -> Optional[Message]:
         await self.update_up_char()
         self.load_up_char()
         if self.UP_CHAR and self.UP_CARD:
-            return MessageChain("重载成功！\n当前UP池子："+self.UP_CHAR.title)
+            return Message(
+                Message.template("重载成功！\n当前UP池子：{}{:image}{:image}").format(
+                    self.UP_CHAR.title,
+                    self.UP_CHAR.pool_img,
+                    self.UP_CARD.pool_img,
+                )
+            )

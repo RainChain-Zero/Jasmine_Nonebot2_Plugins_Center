@@ -1,23 +1,21 @@
-import json
-from .data_source import CaiyunAi, model_list,caiyun_config
+from .data_source import CaiyunAi, model_list
 from .config import Config
 from nonebot_plugin_imageutils import text2image, BuildImage
-import base64
 import re
 from typing import List, Union
+from nonebot.rule import to_me
 from nonebot.typing import T_State
 from nonebot.matcher import Matcher
-from nonebot import logger, on_command, require
+from nonebot import on_command, require
+from nonebot.plugin import PluginMetadata
 from nonebot.params import CommandArg, ArgPlainText, State
-from nonebot.adapters.mirai2 import (
+from nonebot.adapters.onebot.v11 import (
     Bot,
     MessageEvent,
-    GroupMessage,
-    FriendMessage,
-    MessageChain,
+    GroupMessageEvent,
+    Message,
     MessageSegment,
 )
-
 from ..utils.data import read_favor
 
 require("nonebot_plugin_imageutils")
@@ -27,7 +25,7 @@ novel = on_command("续写", aliases={"彩云小梦"}, block=True, priority=12)
 
 
 @novel.handle()
-async def _(matcher: Matcher, msg: MessageChain = CommandArg()):
+async def _(matcher: Matcher, msg: Message = CommandArg()):
     content = msg.extract_plain_text().strip()
     if content:
         matcher.set_arg("content", msg)
@@ -35,8 +33,7 @@ async def _(matcher: Matcher, msg: MessageChain = CommandArg()):
 
 @novel.got("content", prompt="请发送要续写的内容")
 async def _(matcher: Matcher, content: str = ArgPlainText(), state: T_State = State()):
-    matcher.set_arg("reply", MessageChain(
-        [MessageSegment.plain(f"续写{content}")]))
+    matcher.set_arg("reply", Message(f"/续写{content}"))
     caiyunai = CaiyunAi()
     state["caiyunai"] = caiyunai
 
@@ -48,16 +45,20 @@ async def _(
     state: T_State = State(),
     reply: str = ArgPlainText(),
 ):
+    caiyunai: CaiyunAi = state["caiyunai"]
+
     # 好感要求500
-    if read_favor(event.sender.id)<500:
+    if read_favor(event.sender.user_id) < 500:
         await novel.finish("『WARNING』此功能要求好感度≥500哦")
     caiyunai: CaiyunAi = state["caiyunai"]
     if not reply.startswith("/"):
         reply = f"/{reply}"
+
     match_continue = re.match(r"/续写\s*(\S+.*)", reply, re.S)
     match_select = re.match(r"/选择分支\s*(\d+)", reply)
     match_model = re.match(r"/切换模型\s*(\S+)", reply)
     match_stop = re.match(r"/结束续写", reply)
+
     model_help = f"现在支持的模型：{'、'.join(list(model_list))}"
     if match_model:
         model = match_model.group(1).strip()
@@ -82,7 +83,9 @@ async def _(
     await novel.send("『INFO』茉莉正在生成文本...")
     err_msg = await caiyunai.next()
     if err_msg:
-        await novel.finish(err_msg)
+        await novel.finish(f"出错了：{err_msg}")
+
+    msgs = []
     nickname = model_list[caiyunai.model]["name"]
     help_msg = (
         "发送“/选择分支 编号”选择分支\n"
@@ -91,57 +94,36 @@ async def _(
         f"{model_help}\n"
         "发送“/结束续写”结束续写"
     )
-    msgs = [{
-        "senderId": bot.self_id,
-        "time": 0,
-        "senderName": nickname,
-        "messageChain": MessageChain([MessageSegment.plain(help_msg)]),
-        "messageId": None
-    }]
+    msgs.append(help_msg)
     result = BuildImage(
         text2image(caiyunai.result, padding=(20, 20), max_width=800)
     ).save_jpg()
-    res_forward = [{
-        "senderId": bot.self_id,
-        "time": 0,
-        "senderName": nickname,
-        "messageChain": MessageChain([MessageSegment.image(base64=base64.b64encode(result.getvalue()).decode())]),
-        "messageId": None
-    }]
-    result = MessageChain([MessageSegment.plain(caiyunai.result)])
-    res_forward = build_forward_message(bot,nickname,result,res_forward)
-    res_forward = [{"type": "Forward", "nodeList": res_forward}]
-    msgs = build_forward_message(bot, nickname, res_forward, msgs)
+    msgs.append(MessageSegment.image(result))
     for i, content in enumerate(caiyunai.contents, start=1):
-        msg_chain = MessageChain([MessageSegment.plain(f"{i}、\n{content}")])
-        msgs = build_forward_message(bot, nickname, msg_chain, msgs)
+        msgs.append(f"{i}、\n{content}")
     try:
-        if isinstance(event, GroupMessage):
-            await bot.send_group_message(target=event.sender.group.id, message_chain=[{"type": "Forward", "nodeList": msgs}])
-        elif isinstance(event, FriendMessage):
-            await bot.send_friend_message(target=event.sender.id, message_chain=[{"type": "Forward", "nodeList": msgs}])
+        await send_forward_msg(bot, event, nickname, bot.self_id, msgs)
     except:
         await novel.finish("『ERROR』消息发送失败，续写结束")
     await novel.reject()
 
-def build_forward_message(bot: Bot, nickname: str, msg_chain: MessageChain, nodelist: List) -> List:
-    data = {
-        "senderId": bot.self_id,
-        "time": 0,
-        "senderName": nickname,
-        "messageChain": msg_chain,
-        "messageId": None
-    }
-    nodelist.append(data)
-    return nodelist
 
-# def read_favor(qq: int) -> int:
-#     try:
-#         f = open(caiyun_config.favor_path+str(qq)+caiyun_config.favor_conf,
-#                  "r", encoding="utf-8")
-#     except:
-#         return 0
-#     json_str = f.read()
-#     f.close()
-#     j = json.loads(json_str)
-#     return j["好感度"] if j.__contains__("好感度") else 0
+async def send_forward_msg(
+    bot: Bot,
+    event: MessageEvent,
+    name: str,
+    uin: str,
+    msgs: List[Union[str, MessageSegment]],
+):
+    def to_json(msg):
+        return {"type": "node", "data": {"name": name, "uin": uin, "content": msg}}
+
+    messages = [to_json(msg) for msg in msgs]
+    if isinstance(event, GroupMessageEvent):
+        await bot.call_api(
+            "send_group_forward_msg", group_id=event.group_id, messages=messages
+        )
+    else:
+        await bot.call_api(
+            "send_private_forward_msg", user_id=event.user_id, messages=messages
+        )

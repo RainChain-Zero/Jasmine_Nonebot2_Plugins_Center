@@ -2,7 +2,7 @@
 import time
 import json
 from nonebot import get_driver, logger, on_command
-from nonebot.adapters.mirai2 import GroupMessage, MessageSegment, MessageEvent
+from nonebot.adapters.onebot.v11 import GroupMessageEvent, MessageSegment, MessageEvent
 from nonebot import require
 
 from selenium import webdriver
@@ -24,7 +24,7 @@ opt.add_argument('--headless')
 opt.add_argument('--disable-gpu')
 opt.add_argument('--window-size=1366,768')
 opt.add_argument("--no-sandbox")
-opt.add_experimental_option("excludeSwitches", ["enable-logging"])
+# opt.add_experimental_option("excludeSwitches", ["enable-logging"])
 opt.add_argument('ignore-certificate-errors')
 
 # 保存实例
@@ -42,31 +42,31 @@ SearchTrigger = on_command("查干员")
 
 
 @StartTrigger.handle()
-async def StartGame(event: GroupMessage):
+async def StartGame(event: GroupMessageEvent):
     global BroswerDic, GroupCnt, GroupLastTime
 
     # 获取干员
     operator = event.get_plaintext()[5:]
     # 当前群不存在浏览器实例
-    if not BroswerDic.__contains__(event.sender.group.id):
+    if not BroswerDic.__contains__(event.group_id):
         await StartTrigger.send("茉莉正在执行初始化...请耐心等待\n若短时间内不使用，请输入“/不猜了”关闭相关进程")
         # 创建Chrome对象并传入设置信息.
         browser = webdriver.ChromiumEdge(options=opt)
         browser.get("http://akg.saki.cc")
         browser.implicitly_wait(2)
-        BroswerDic[event.sender.group.id]=browser
+        BroswerDic[event.group_id] = browser
         try:
             browser.find_element(By.CSS_SELECTOR, '.close-icon').click()
         except:
             await StartTrigger.finish("网络连接出错！")
 
-    BrowserNow = BroswerDic[event.sender.group.id]
+    BrowserNow = BroswerDic[event.group_id]
     # 当前群不存在次数配置
-    if not GroupCnt.__contains__(event.sender.group.id):
-        GroupCnt[event.sender.group.id] = 8
+    if not GroupCnt.__contains__(event.group_id):
+        GroupCnt[event.group_id] = 8
 
     # 更新群最后问答时间
-    GroupLastTime[event.sender.group.id] = time.time()
+    GroupLastTime[event.group_id] = time.time()
     try:
         input = BrowserNow.find_element(By.ID, 'guess')
         input.send_keys(operator)
@@ -87,17 +87,17 @@ async def StartGame(event: GroupMessage):
     # except:
     #     input.clear()
     #     await StartTrigger.finish("当前干员名称输入有误哦~")
-    
+
     # todo 暂时采用本地信息
     # ! 注意文件路径
     data = json.load(open(
-        r'F:\Bot\NoneBot2\nonebot\src\plugins\guessoperator\operator.json', encoding='UTF-8'))
+        r'/home/nonebot2/src/plugins/nonebot_plugin_guessoperator/operator.json', encoding='UTF-8'))
     if(not data.__contains__(operator)):
         input.clear()
         await StartTrigger.finish("当前干员名称输入有误哦~")
 
     # 剩余次数减一
-    cnt = GroupCnt[event.sender.group.id] = GroupCnt[event.sender.group.id]-1
+    cnt = GroupCnt[event.group_id] = GroupCnt[event.group_id]-1
 
     BrowserNow.find_element(By.CSS_SELECTOR, '.mdui-btn-raised').click()
 
@@ -116,7 +116,7 @@ async def StartGame(event: GroupMessage):
 
     if(res.startswith("成功")):
         # 准备重新开始
-        GroupCnt[event.sender.group.id] = 8
+        GroupCnt[event.group_id] = 8
         BrowserNow.find_element(
             By.CSS_SELECTOR, '.main-container .togglec').click()
     elif(cnt <= 0):
@@ -124,7 +124,7 @@ async def StartGame(event: GroupMessage):
         res = BrowserNow.find_element(
             By.CSS_SELECTOR, '.answer').get_attribute('innerText')
         # 准备重新开始
-        GroupCnt[event.sender.group.id] = 8
+        GroupCnt[event.group_id] = 8
         BrowserNow.find_element(
             By.CSS_SELECTOR, '.main-container .togglec').click()
 
@@ -137,10 +137,10 @@ async def StartGame(event: GroupMessage):
 
 
 @AnswerTrigger.handle()
-async def GiveAnswer(event: GroupMessage):
+async def GiveAnswer(event: GroupMessageEvent):
     global GroupCnt, BroswerDic
     try:
-        browser = BroswerDic[event.sender.group.id]
+        browser = BroswerDic[event.group_id]
         browser.find_element(By.CSS_SELECTOR, '.togglec').click()
         browser.find_element(
             By.CSS_SELECTOR, '.mdui-dialog-actions a:nth-child(2)').click()
@@ -150,7 +150,7 @@ async def GiveAnswer(event: GroupMessage):
         logger.warning("guessoperator:获取答案失败！")
 
     # 准备重新开始
-    GroupCnt[event.sender.group.id] = 8
+    GroupCnt[event.group_id] = 8
 
     try:
         browser.find_element(
@@ -162,16 +162,16 @@ async def GiveAnswer(event: GroupMessage):
 
 
 @StopTrigger.handle()
-async def StopGame(event: GroupMessage):
+async def StopGame(event: GroupMessageEvent):
     global GroupCnt, BroswerDic
-    if(GroupCnt.__contains__(event.sender.group.id) and BroswerDic.__contains__(event.sender.group.id)):
-        del GroupCnt[event.sender.group.id]
+    if(GroupCnt.__contains__(event.group_id) and BroswerDic.__contains__(event.group_id)):
+        del GroupCnt[event.group_id]
         # 关闭浏览器实例
         try:
-            BroswerDic[event.sender.group.id].refresh()
-            BroswerDic[event.sender.group.id].delete_all_cookies()
-            BroswerDic[event.sender.group.id].quit()
-            del BroswerDic[event.sender.group.id]
+            BroswerDic[event.group_id].refresh()
+            BroswerDic[event.group_id].delete_all_cookies()
+            BroswerDic[event.group_id].quit()
+            del BroswerDic[event.group_id]
         except:
             pass
     await StopTrigger.finish("茉莉已成功关闭本轮猜题")
@@ -217,7 +217,7 @@ async def SearchOperator(event: MessageEvent):
     operator = event.get_plaintext()[5:]
     #! 注意文件路径
     data = json.load(open(
-        r'F:\Bot\NoneBot2\nonebot\src\plugins\guessoperator\operator.json', encoding='UTF-8'))
+        r'/home/nonebot2/src/plugins/nonebot_plugin_guessoperator/operator.json', encoding='UTF-8'))
     if(data.__contains__(operator)):
         await SearchTrigger.finish(data[operator])
     else:

@@ -2,20 +2,19 @@ import re
 import shlex
 from io import BytesIO
 from typing import List, Optional
-from nonebot import get_driver, logger
-from nonebot.typing import T_State
-from nonebot.params import State, Depends, RegexDict
+
 from nonebot.rule import Rule
-from nonebot.adapters.mirai2 import (
+from nonebot import get_driver
+from nonebot.typing import T_State
+from nonebot.params import State, Depends
+from nonebot.adapters.onebot.v11 import (
     Bot,
-    MessageChain,
+    Message,
     MessageSegment,
     MessageEvent,
-    GroupMessage
+    GroupMessageEvent,
+    unescape,
 )
-
-from nonebot.adapters.onebot.v11 import unescape
-
 
 from nonebot_plugin_imageutils import BuildImage
 
@@ -62,26 +61,47 @@ def is_qq(msg: str):
 
 def split_msg():
     def dependency(event: MessageEvent, state: T_State = State()):
+        def _is_at_me_seg(segment: MessageSegment):
+            return segment.type == "at" and str(segment.data.get("qq", "")) == str(
+                event.self_id
+            )
 
-        msg: MessageChain = state["REGEX_ARG"]
+        msg: Message = state["REGEX_ARG"]
 
+        if event.to_me:
+            raw_msg = event.original_message
+            i = -1
+            last_msg_seg = raw_msg[i]
+            if (
+                last_msg_seg.type == "text"
+                and not last_msg_seg.data["text"].strip()
+                and len(raw_msg) >= 2
+            ):
+                i -= 1
+                last_msg_seg = raw_msg[i]
+            if _is_at_me_seg(last_msg_seg):
+                msg.append(last_msg_seg)
 
         users: List[UserInfo] = []
         args: List[str] = []
 
+        if event.reply:
+            for img in event.reply.message["image"]:
+                users.append(UserInfo(img_url=str(img.data.get("url", ""))))
+
         for msg_seg in msg:
-            if msg_seg.type == "At":
+            if msg_seg.type == "at":
                 users.append(
                     UserInfo(
-                        qq=str(msg_seg.data.get("target", "")),
-                        group=str(event.sender.group.id)
-                        if isinstance(event, GroupMessage)
+                        qq=str(msg_seg.data.get("qq", "")),
+                        group=str(event.group_id)
+                        if isinstance(event, GroupMessageEvent)
                         else "",
                     )
                 )
-            elif msg_seg.type == "Image":
+            elif msg_seg.type == "image":
                 users.append(UserInfo(img_url=str(msg_seg.data.get("url", ""))))
-            elif msg_seg.type == "Plain":
+            elif msg_seg.type == "text":
                 raw_text = str(msg_seg)
                 try:
                     texts = shlex.split(raw_text)
@@ -93,9 +113,9 @@ def split_msg():
                     elif text == "自己":
                         users.append(
                             UserInfo(
-                                qq=str(event.sender.id),
-                                group=str(event.sender.group.id)
-                                if isinstance(event, GroupMessage)
+                                qq=str(event.user_id),
+                                group=str(event.group_id)
+                                if isinstance(event, GroupMessageEvent)
                                 else "",
                             )
                         )
@@ -103,30 +123,29 @@ def split_msg():
                         text = unescape(text).strip()
                         if text:
                             args.append(text)
-        #! 删除触发指令command
-        # args.remove(args[0])  
 
-        sender = UserInfo(qq=str(event.sender.id))
+        sender = UserInfo(qq=str(event.user_id))
         state[SENDER_KEY] = sender
         state[USERS_KEY] = users
         state[ARGS_KEY] = args
 
     return Depends(dependency)
 
+
 async def get_user_info(bot: Bot, user: UserInfo):
     if not user.qq:
         return
 
     if user.group:
-        info = await bot.member_profile(
-            target=int(user.group), member_id=int(user.qq)
+        info = await bot.get_group_member_info(
+            group_id=int(user.group), user_id=int(user.qq)
         )
         user.name = info.get("card", "") or info.get("nickname", "")
-        user.gender = info.get("sex", "").lower()
+        user.gender = info.get("sex", "")
     else:
-        info = await bot.friend_profile(target=int(user.qq))
+        info = await bot.get_stranger_info(user_id=int(user.qq))
         user.name = info.get("nickname", "")
-        user.gender = info.get("sex", "").lower()
+        user.gender = info.get("sex", "")
 
 
 async def download_image(user: UserInfo):

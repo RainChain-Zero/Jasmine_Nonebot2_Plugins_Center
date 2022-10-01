@@ -1,4 +1,3 @@
-import math
 import httpx
 import imageio
 from io import BytesIO
@@ -7,8 +6,7 @@ from PIL.Image import Image as IMG
 from typing_extensions import Literal
 from typing import Callable, List, Tuple, Protocol
 
-from nonebot.utils import run_sync
-from nonebot_plugin_imageutils import BuildImage, Text2Image
+from nonebot_plugin_imageutils import BuildImage
 
 
 @dataclass
@@ -22,7 +20,8 @@ class UserInfo:
 
 
 @dataclass
-class Command:
+class Meme:
+    name: str
     func: Callable
     keywords: Tuple[str, ...]
     pattern: str = ""
@@ -65,15 +64,16 @@ def make_jpg_or_gif(
             index = (int(i * ratio) for i in range(gif_max_frames))
             duration *= ratio
 
-        frames = []
+        frames: List[IMG] = []
         for i in index:
             image.seek(i)
             new_img = func(BuildImage(image).convert("RGBA"))
-            frames.append(
-                new_img.resize(
-                    (int(new_img.width * gif_zoom), int(new_img.height * gif_zoom))
-                ).image
+            new_img = new_img.resize(
+                (int(new_img.width * gif_zoom), int(new_img.height * gif_zoom))
             )
+            bg = BuildImage.new("RGBA", new_img.size, "white")
+            bg.paste(new_img, alpha=True)
+            frames.append(bg.image)
         return save_gif(frames, duration)
 
 
@@ -87,26 +87,3 @@ async def translate(text: str) -> str:
         return result["translateResult"][0][0]["tgt"]
     except:
         return ""
-
-
-@run_sync
-def help_image(commands: List[Command]) -> BytesIO:
-    def cmd_text(cmds: List[Command], start: int = 1) -> str:
-        return "\n".join(
-            [f"{i + start}. " + "/".join(cmd.keywords) for i, cmd in enumerate(cmds)]
-        )
-
-    text1 = "摸头等头像相关表情制作\n触发方式：指令 + @某人 / qq号 / 自己 / [图片]\n支持的指令："
-    idx = math.ceil(len(commands) / 2)
-    text2 = cmd_text(commands[:idx])
-    text3 = cmd_text(commands[idx:], start=idx + 1)
-    img1 = Text2Image.from_text(text1, 30, weight="bold").to_image(padding=(20, 10))
-    img2 = Text2Image.from_text(text2, 30).to_image(padding=(20, 10))
-    img3 = Text2Image.from_text(text3, 30).to_image(padding=(20, 10))
-    w = max(img1.width, img2.width + img3.width)
-    h = img1.height + max(img2.height, img2.height)
-    img = BuildImage.new("RGBA", (w, h), "white")
-    img.paste(img1, alpha=True)
-    img.paste(img2, (0, img1.height), alpha=True)
-    img.paste(img3, (img2.width, img1.height), alpha=True)
-    return img.save_jpg()

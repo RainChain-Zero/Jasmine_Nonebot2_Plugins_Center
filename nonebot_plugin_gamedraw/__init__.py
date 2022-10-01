@@ -1,13 +1,12 @@
 import asyncio
-from operator import imod
 import traceback
 from cn2an import cn2an
 from dataclasses import dataclass
-from typing import Optional, Set, Tuple, Union
+from typing import Optional, Set, Tuple
 
 import nonebot
-from nonebot import on_command, on_regex, on_keyword
-from nonebot.adapters.mirai2 import MessageEvent
+from nonebot import on_regex, on_keyword
+from nonebot.adapters.onebot.v11 import MessageEvent
 from nonebot.log import logger
 from nonebot.matcher import Matcher
 from nonebot.params import RegexGroup
@@ -24,21 +23,22 @@ from .handles.onmyoji_handle import OnmyojiHandle
 from .handles.pcr_handle import PcrHandle
 from .handles.pretty_handle import PrettyHandle
 from .handles.prts_handle import PrtsHandle
+from .handles.ba_handle import BaHandle
 
 from .config import draw_config
 
-from nonebot.adapters.mirai2 import MessageSegment
+
 @dataclass
 class Game:
     keywords: Set[str]
     handle: BaseHandle
     flag: bool
-    max_count: int = 180  # 一次最大抽卡数
+    max_count: int = 300  # 一次最大抽卡数
     reload_time: Optional[int] = None  # 重载UP池时间（小时）
 
 
 games = (
-    Game({"/azur", "/碧蓝", "/碧蓝航线"}, AzurHandle(), draw_config.AZUR_FLAG),
+    Game({"/azur", "/碧蓝","/碧蓝航线"}, AzurHandle(), draw_config.AZUR_FLAG),
     Game({"/fgo", "/命运冠位指定"}, FgoHandle(), draw_config.FGO_FLAG),
     Game(
         {"/genshin", "/原神"},
@@ -63,6 +63,7 @@ games = (
         reload_time=4,
     ),
     Game({"/prts", "/方舟", "/明日方舟"}, PrtsHandle(), draw_config.PRTS_FLAG, reload_time=4),
+    # Game({"/ba","/碧蓝档案"},BaHandle(),draw_config.BA_FLAG),
 )
 
 
@@ -78,13 +79,13 @@ def create_matchers():
                 try:
                     num = int(cn2an(num, mode="smart"))
                 except ValueError:
-                    await matcher.finish("诶？茉莉看不懂你想抽什么呢..")
+                    await matcher.finish("必须输入数字哦？")
             if unit == "井":
                 num *= game.max_count
             if num < 1:
-                await matcher.finish("噫呼，这让茉莉怎么抽嘛")
+                await matcher.finish("诶？这可怎么抽啊...？")
             elif num > game.max_count:
-                await matcher.finish("太贪心可不好哦？")
+                await matcher.finish("茉莉觉得太贪心不好哦？~")
             pool_name = (
                 pool_name.replace("池", "")
                 .replace("武器", "arms")
@@ -93,10 +94,10 @@ def create_matchers():
                 .replace("卡", "card")
             )
             try:
-                res = game.handle.draw(num, pool_name=pool_name, user_id=event.get_user_id())
+                res = game.handle.draw(num, pool_name=pool_name, user_id=event.user_id)
             except:
                 logger.warning(traceback.format_exc())
-                await matcher.finish("茉莉发现有哪里出错了...")
+                await matcher.finish("有哪里出错了...请稍后再试或汇报管理员")
             await matcher.finish(res, at_sender=True)
 
         return handler
@@ -104,7 +105,7 @@ def create_matchers():
     def update_handler(game: Game) -> T_Handler:
         async def handler(matcher: Matcher):
             await game.handle.update_info()
-            await matcher.finish("茉莉更新目标完成了！")
+            await matcher.finish("更新完成！")
 
         return handler
 
@@ -118,8 +119,8 @@ def create_matchers():
 
     def reset_handler(game: Game) -> T_Handler:
         async def handler(matcher: Matcher, event: MessageEvent):
-            if game.handle.reset_count(event.get_user_id()):
-                await matcher.finish("茉莉重置目标成功了！")
+            if game.handle.reset_count(event.user_id):
+                await matcher.finish("重置成功！")
 
         return handler
 
@@ -144,7 +145,7 @@ def create_matchers():
                 draw_handler(game)
             )
             on_keyword(
-                update_keywords, permission=SUPERUSER, priority=1, block=True
+                update_keywords, priority=1, block=True
             ).append_handler(update_handler(game))
             on_keyword(reload_keywords, priority=1, block=True).append_handler(
                 reload_handler(game)
@@ -187,10 +188,3 @@ async def _():
             if not game.handle.data_exists():
                 tasks.append(asyncio.ensure_future(game.handle.update_info()))
     await asyncio.gather(*tasks)
-
-# 用户帮助文档
-helphandle=on_command("help抽卡",None,{"help 抽卡"})
-
-@helphandle.handle()
-async def helpdraw():
-    await helphandle.finish(MessageSegment.image(None,None,"/home/mirai/Dice3349795206/plugin/HelpPic/drawcard.png",None))

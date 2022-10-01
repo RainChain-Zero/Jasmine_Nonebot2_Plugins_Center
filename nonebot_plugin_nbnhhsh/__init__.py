@@ -5,7 +5,7 @@ from nonebot import Bot, get_driver, on_command, on_regex
 
 from .config import Config
 
-from nonebot.adapters.mirai2 import MessageEvent, MessageSegment, MessageChain
+from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment
 
 global_config = get_driver().config
 config = Config.parse_obj(global_config)
@@ -78,7 +78,7 @@ async def sxHandler(bot: Bot, event: MessageEvent):
         if msg:
             # msgChain=MessageChain([,])
             # 注意获取消息id的方法MessageEvent.source.id
-            await sx_matcher.finish(MessageSegment.plain(f'{name}的解释为:\n{msg}'))
+            await sx_matcher.finish(MessageSegment.text(f'{name}的解释为:\n{msg}'))
         else:
             await sx_matcher.finish(f'茉莉没有找到{origin}的解释呢...')
     except KeyError:

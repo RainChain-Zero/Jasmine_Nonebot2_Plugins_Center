@@ -1,8 +1,10 @@
 import json
 import requests
 from nonebot import Bot, get_driver, logger
-from nonebot.adapters.mirai2 import MessageChain, MessageSegment
+from nonebot.adapters.onebot.v11 import Message, MessageSegment
 from .config import Config
+
+from ..utils.message import get_img
 
 global_config = get_driver().config
 config = Config.parse_obj(global_config)
@@ -15,29 +17,6 @@ def judge_maxnum(num):
         return False
     else:
         return True
-
-# opt为0代表合并转发模式;1为“刷屏”模式
-
-
-# def judge_user_permission(qq: int, opt: int) -> bool:
-#     try:
-#         f = open(f"{config.conf_path}\\{qq}\\favorConf.json",
-#                  "r", encoding="utf-8")
-#     except:
-#         return False
-#     json_str = f.read()
-#     f.close()
-#     j = json.loads(json_str)
-#     if (opt == 0):
-#         if(j.__contains__("好感度") and j["好感度"] >= config.normal_favor_limit):
-#             return True
-#         else:
-#             return False
-#     elif(opt == 1):
-#         if(j.__contains__("好感度") and j["好感度"] >= config.boom_favor_limit):
-#             return True
-#         else:
-#             return False
 
 # 判断群是否具有权限
 
@@ -57,7 +36,7 @@ def judge_group_permission(group: int) -> bool:
     return False
 
 
-def call_setu_api(num: int):
+async def call_setu_api(num: int):
     # res = requests.get(
     #     f"https://api.lolicon.app/setu/v2?proxy=pixiv.runrab.workers.dev&num={num}").json()
     res = requests.get(
@@ -65,7 +44,7 @@ def call_setu_api(num: int):
     if(res["error"] != ""):
         return False
     # 一条消息的消息链
-    pic_list = MessageChain([])
+    pic_list = Message()
     return_list = []
     # tags = ""
 
@@ -79,11 +58,11 @@ def call_setu_api(num: int):
         #     tag_cnt = tag_cnt+1
         #     if(tag_cnt > 8):
         #         break
-        pic_list.append(MessageSegment.plain(
+        pic_list.append(MessageSegment.text(
             f"标题：{title}\n作者：{author}\n"))
-        pic_list.append(MessageSegment.image(url=data["urls"]["original"]))
+        pic_list.append(MessageSegment.image(await get_img(data["urls"]["original"], global_config.proxy)))
         return_list.append(pic_list)
         # tags = ""
-        pic_list = MessageChain([])
+        pic_list = Message()
 
     return return_list

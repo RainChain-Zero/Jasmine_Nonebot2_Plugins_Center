@@ -3,7 +3,7 @@ from collections import defaultdict
 from nonebot import require
 from .config import SYSTEM_PROXY
 from typing import List, Union, Optional, Type, Any
-from nonebot.adapters.mirai2 import Bot, MessageChain
+from nonebot.adapters.onebot.v11 import Bot, Message
 from nonebot.matcher import matchers, Matcher
 import httpx
 import nonebot
@@ -190,7 +190,7 @@ def get_matchers() -> List[Type[Matcher]]:
     return _matchers
 
 
-def get_message_at(data: Union[str, MessageChain]) -> List[int]:
+def get_message_at(data: Union[str, Message]) -> List[int]:
     """
     说明：
         获取消息中所有的 at 对象的 qq
@@ -210,7 +210,7 @@ def get_message_at(data: Union[str, MessageChain]) -> List[int]:
     return qq_list
 
 
-def get_message_img(data: Union[str, MessageChain]) -> List[str]:
+def get_message_img(data: Union[str, Message]) -> List[str]:
     """
     说明：
         获取消息中所有的 图片 的链接
@@ -220,8 +220,8 @@ def get_message_img(data: Union[str, MessageChain]) -> List[str]:
     img_list = []
     if isinstance(data, str):
         data = json.loads(data)
-        for msg in data["message_chain"]:
-            if msg["type"] == "Image":
+        for msg in data["message"]:
+            if msg["type"] == "image":
                 img_list.append(msg["data"]["url"])
     else:
         for seg in data["image"]:
@@ -229,7 +229,7 @@ def get_message_img(data: Union[str, MessageChain]) -> List[str]:
     return img_list
 
 
-def get_message_text(data: Union[str, MessageChain]) -> str:
+def get_message_text(data: Union[str, Message]) -> str:
     """
     说明：
         获取消息中 纯文本 的信息
@@ -249,7 +249,7 @@ def get_message_text(data: Union[str, MessageChain]) -> str:
     return result
 
 
-def get_message_record(data: Union[str, MessageChain]) -> List[str]:
+def get_message_record(data: Union[str, Message]) -> List[str]:
     """
     说明：
         获取消息中所有 语音 的链接

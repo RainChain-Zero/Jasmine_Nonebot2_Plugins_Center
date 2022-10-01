@@ -1,7 +1,7 @@
 import json
 import re
 from nonebot import Bot, get_driver, logger, on_command
-from nonebot.adapters.mirai2 import MessageEvent, GroupMessage, MessageChain, MessageSegment
+from nonebot.adapters.onebot.v11 import MessageEvent, GroupMessageEvent, Message, MessageSegment
 
 from .config import Config
 
@@ -29,14 +29,14 @@ async def send_setu_boom(bot: Bot, event: MessageEvent):
         num = 1
     if(not judge_maxnum(num)):
         await setu_boom.finish("『✖Error』一下太多对身体不好哦？")
-    if(read_favor(event.sender.id) < 3000):
+    if(read_favor(event.sender.user_id) < 3000):
         await setu_boom.finish("『✖条件未满足』茉莉还不想给你看这些哦~(此功能好感要求>3000)")
-    if(isinstance(event, GroupMessage) and not judge_group_permission(event.sender.group.id)):
+    if(isinstance(event, GroupMessageEvent) and not judge_group_permission(event.group_id)):
         await setu_boom.finish("『✖群权限不足』茉莉并不觉得在这里这么做是安全的哦×(此功能需要向茉莉管理员申请许可)")
 
     logger.info("yes")
 
-    messagechain_list = call_setu_api(num)
+    messagechain_list = await call_setu_api(num)
 
     for messagechain in messagechain_list:
         logger.info("succ")

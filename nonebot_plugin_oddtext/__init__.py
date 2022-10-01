@@ -2,7 +2,7 @@ import traceback
 from nonebot import on_command
 from nonebot.log import logger
 from nonebot.matcher import Matcher
-from nonebot.adapters.mirai2 import MessageChain
+from nonebot.adapters.onebot.v11 import Message
 from nonebot.typing import T_Handler
 from nonebot.params import CommandArg
 from nonebot.log import default_format
@@ -12,7 +12,7 @@ from .data_source import commands, Command
 
 def create_matchers():
     def create_handler(command: Command) -> T_Handler:
-        async def handler(matcher: Matcher, msg: MessageChain = CommandArg()):
+        async def handler(matcher: Matcher, msg: Message = CommandArg()):
             text = msg.extract_plain_text().strip()
             if not text:
                 matcher.block = False

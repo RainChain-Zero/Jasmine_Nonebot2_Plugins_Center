@@ -6,7 +6,7 @@ from PIL import ImageDraw
 from urllib.parse import unquote
 from pydantic import ValidationError
 from nonebot.log import logger
-from nonebot.adapters.mirai2 import MessageChain, MessageSegment
+from nonebot.adapters.onebot.v11 import Message, MessageSegment
 
 from .base_handle import BaseHandle, BaseData, UpEvent as _UpEvent, UpChar as _UpChar
 from ..config import draw_config
@@ -97,12 +97,12 @@ class AzurHandle(BaseHandle[AzurChar]):
             )
         return acquire_char
 
-    def draw(self, count: int, **kwargs) -> MessageChain:
+    def draw(self, count: int, **kwargs) -> Message:
         index2card = self.get_cards(count, **kwargs)
         cards = [card[0] for card in index2card]
         up_list = [x.name for x in self.UP_EVENT.up_char] if self.UP_EVENT else []
         result = self.format_result(index2card, **{**kwargs, "up_list": up_list})
-        return MessageSegment.image(None,None,None,self.generate_img(cards).pic2bs4()) + result
+        return MessageSegment.image(self.generate_img(cards).pic2bs4()) + result
 
     def generate_card_img(self, card: AzurChar) -> BuildImage:
         sep_w = 5
@@ -167,22 +167,22 @@ class AzurHandle(BaseHandle[AzurChar]):
             return
         dom = etree.HTML(result, etree.HTMLParser())
         contents = dom.xpath(
-            "//div[@class='resp-tabs-container']/div[@class='resp-tab-content']"
+            "//div[@class='mw-body-content mw-content-ltr']/div[@class='mw-parser-output']"
         )
         for index, content in enumerate(contents):
-            char_list = content.xpath("./table/tbody/tr[2]/td/div/div/div/div")
+            char_list = content.xpath("./div[@id='CardSelectTr']/div")
             for char in char_list:
                 try:
-                    name = char.xpath("./a/@title")[0]
-                    frame = char.xpath("./div/a/img/@alt")[0]
-                    avatar = char.xpath("./a/img/@srcset")[0]
+                    name = char.xpath("./div/a/@title")[0]
+                    frame = char.xpath("./div/div/a/img/@alt")[0]
+                    avatar = char.xpath("./div/a/img/@srcset")[0]
                 except IndexError:
                     continue
                 member_dict = {
                     "名称": remove_prohibited_str(name),
                     "头像": unquote(str(avatar).split(" ")[-2]),
                     "星级": self.parse_star(frame),
-                    "类型": self.parse_type(index),
+                    "类型": char.xpath("./@data-param1")[0].split(",")[1],
                 }
                 info[member_dict["名称"]] = member_dict
         # 更新额外信息
@@ -201,14 +201,14 @@ class AzurHandle(BaseHandle[AzurChar]):
                 sources = []
                 if "无法建造" in time:
                     sources.append("无法建造")
-                elif "活动已经关闭" in time:
+                elif "活动已关闭" in time:
                     sources.append("活动限定")
                 else:
                     sources.append("可以建造")
                 info[key]["获取途径"] = sources
             except IndexError:
                 info[key]["获取途径"] = []
-                logger.warning(f"{self.game_name_cn} 获取额外信息错误了 {key}")
+                logger.warning(f"{self.game_name_cn} 获取额外信息错误 {key}")
         self.dump_data(info)
         logger.info(f"{self.game_name_cn} 更新成功")
         # 下载头像
@@ -250,33 +250,11 @@ class AzurHandle(BaseHandle[AzurChar]):
         else:
             return 6
 
-    @staticmethod
-    def parse_type(index: int) -> str:
-        azur_types = [
-            "驱逐",
-            "轻巡",
-            "重巡",
-            "超巡",
-            "战巡",
-            "战列",
-            "航母",
-            "航站",
-            "轻航",
-            "重炮",
-            "维修",
-            "潜艇",
-            "运输",
-        ]
-        try:
-            return azur_types[index]
-        except IndexError:
-            return azur_types[0]
-
     async def update_up_char(self):
         url = "https://wiki.biligame.com/blhx/游戏活动表"
         result = await self.get_url(url)
         if not result:
-            logger.warning(f"{self.game_name_cn}获取活动表出错了")
+            logger.warning(f"{self.game_name_cn}获取活动表出错")
             return
         try:
             dom = etree.HTML(result, etree.HTMLParser())
@@ -285,7 +263,7 @@ class AzurHandle(BaseHandle[AzurChar]):
             title = dd.xpath("string(.)")
             result = await self.get_url(url)
             if not result:
-                logger.warning(f"{self.game_name_cn}获取活动页面出错了")
+                logger.warning(f"{self.game_name_cn}获取活动页面出错")
                 return
             dom = etree.HTML(result, etree.HTMLParser())
             timer = dom.xpath("//span[@class='eventTimer']")[0]
@@ -298,7 +276,7 @@ class AzurHandle(BaseHandle[AzurChar]):
                 type_ = ship.xpath("./tbody/tr/td[2]/p/small/text()")[0]  # 舰船类型
                 try:
                     p = float(str(ship.xpath(".//sup/text()")[0]).strip("%"))
-                except IndexError:
+                except (IndexError, ValueError):
                     p = 0
                 star = self.parse_star(
                     ship.xpath("./tbody/tr/td[1]/div/div/div/a/img/@alt")[0]
@@ -315,10 +293,10 @@ class AzurHandle(BaseHandle[AzurChar]):
             )
             self.dump_up_char()
         except Exception as e:
-            logger.warning(f"{self.game_name_cn}UP更新出错了 {type(e)}：{e}")
+            logger.warning(f"{self.game_name_cn}UP更新出错 {type(e)}：{e}")
 
-    async def _reload_pool(self) -> Optional[MessageChain]:
+    async def _reload_pool(self) -> Optional[Message]:
         await self.update_up_char()
         self.load_up_char()
         if self.UP_EVENT:
-            return MessageChain(f"重载成功了！\n当前活动：{self.UP_EVENT.title}")
+            return Message(f"重载成功！\n当前活动：{self.UP_EVENT.title}")

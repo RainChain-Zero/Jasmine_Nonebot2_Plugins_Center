@@ -1,15 +1,12 @@
 
 from email import message
 from nonebot import on_command
-from nonebot.adapters.mirai2 import Bot, Event, FriendMessage, GroupMessage, MessageChain, MessageSegment
+from nonebot.adapters.onebot.v11 import Bot, Event, PrivateMessageEvent, GroupMessageEvent, Message, MessageSegment
 from typing import List
 
 from .data_source import Cards, meanings, global_config
 
-if not hasattr(global_config, "chain_reply"):
-    CHAIN_REPLY = False
-else:
-    CHAIN_REPLY = global_config.chain_reply
+from ..utils.message import send_forward_msg
 
 if not hasattr(global_config, "nickname"):
     NICKNAME = "Bot"
@@ -41,13 +38,13 @@ async def show_help(bot: Bot, event: Event):
 async def _(bot: Bot, event: Event):
     card = Cards(1)
     card_key, card_value, image_file = card.reveal()
-    if isinstance(event, GroupMessage):
-        msg = MessageSegment.plain(
-            f"『{card_key}』\n{card_value}\n") + MessageSegment.image(path=image_file)
+    if isinstance(event, GroupMessageEvent):
+        msg = MessageSegment.text(
+            f"『{card_key}』\n{card_value}\n") + MessageSegment.image(image_file)
         await tarot.finish(message=msg, at_sender=True)
     else:
-        msg = MessageSegment.plain(
-            f"『{card_key}』\n{card_value}\n") + MessageSegment.image(path=image_file)
+        msg = MessageSegment.text(
+            f"『{card_key}』\n{card_value}\n") + MessageSegment.image(image_file)
         await tarot.finish(message=msg, at_sender=False)
 
 
@@ -63,43 +60,9 @@ async def _(bot: Bot, event: Event):
         meaning_key = list(meanings.keys())[count]
         meaning_value = meanings[meaning_key]
 
-        if isinstance(event, FriendMessage):
-            text = meaning_key + "，" + meaning_value + \
-                "\n" + "『"+card_key+"』" + "，" + card_value + "\n"
-            msg = MessageSegment.plain(
-                text) + MessageSegment.image(path=image_file)
-            if count < 3:
-                await bot.send_friend_message(target=event.sender.id, message_chain=msg)
-            else:
-                await bot.send_friend_message(target=event.sender.id, message_chain=msg)
-
-        if isinstance(event, GroupMessage):
-            if not CHAIN_REPLY:
-                text = meaning_key + "，" + meaning_value + \
-                    "\n" + "『"+card_key+"』" + "，" + card_value + "\n"
-                msg = MessageSegment.plain(
-                    text) + MessageSegment.image(path=image_file)
-                if count < 3:
-                    await bot.send(event=event, message=msg, at_sender=True)
-                else:
-                    await divine.finish(message=msg, at_sender=True)
-            else:
-                text = meaning_key + "，" + meaning_value + \
-                    "\n" + "『"+card_key+"』" + "，" + card_value + "\n"
-                msg = MessageChain([MessageSegment.plain(
-                    text), MessageSegment.image(path=image_file)])
-                if count < 4:
-                    chain = await chain_reply(bot, chain, msg)
-            if CHAIN_REPLY and count == 3:
-                await bot.send_group_message(target=event.sender.group.id, message_chain=[{"type": "Forward", "nodeList": chain}])
-
-async def chain_reply(bot: Bot, chain: List, msg: MessageChain) -> List:
-    data = {
-        "senderId": bot.self_id,
-        "time": 0,
-        "senderName": "茉莉",
-        "messageChain": msg,
-        "messageId": None
-    }
-    chain.append(data)
-    return chain
+        text = meaning_key + "，" + meaning_value + \
+            "\n" + "『"+card_key+"』" + "，" + card_value + "\n"
+        msg = MessageSegment.text(
+            text) + MessageSegment.image(image_file)
+        chain.append(msg)
+    await send_forward_msg(bot, event, '茉莉', bot.self_id, chain)
