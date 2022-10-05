@@ -34,8 +34,6 @@ async def send_setu_boom(bot: Bot, event: MessageEvent):
     if(isinstance(event, GroupMessageEvent) and not judge_group_permission(event.group_id)):
         await setu_boom.finish("『✖群权限不足』茉莉并不觉得在这里这么做是安全的哦×(此功能需要向茉莉管理员申请许可)")
 
-    logger.info("yes")
-
     messagechain_list = await call_setu_api(num)
 
     for messagechain in messagechain_list:
@@ -49,7 +47,7 @@ async def send_setu_boom(bot: Bot, event: MessageEvent):
 async def offer_group_permission(event: MessageEvent):
     msg = event.get_plaintext()
     group = int(re.compile(r"\d+").findall(msg)[0])
-    if(event.sender.id in config.admin_list):
+    if(event.sender.user_id in config.admin_list):
         try:
             f = open(config.group_permission_path, "r", encoding="utf-8")
         except:
