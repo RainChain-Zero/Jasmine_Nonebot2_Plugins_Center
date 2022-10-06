@@ -5,6 +5,7 @@ from nonebot.plugin import on_command
 from nonebot.adapters.onebot.v11.helpers import HandleCancellation
 from json import loads
 from nonebot import get_driver
+from ..utils.data import read_favor
 
 try:
     api = loads(get_driver().config.json())["realesrgan_api"]
@@ -23,6 +24,8 @@ async def real_esrgan_handle_first(
     state: T_State,
     args: Message = CommandArg(),
 ):
+    if read_favor(event.sender.user_id) < 500:
+        await real_esrgan.finish("超分重构要求好感度≥500")
     state['id'] = event.get_user_id()
     for seg in args:
         if seg.type == "text":
