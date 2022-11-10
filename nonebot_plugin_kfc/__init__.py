@@ -67,11 +67,11 @@ class KFC:
             city_list = resp_json['data']['allCities']
             for city in city_list:
                 city_name = city['cityNameZh']
-                district_name = city['districtName']
+                district_name = city.get('districtName', '')
                 if ' ' not in param_city:
                     if param_city in city_name and district_name == '':
                         CityCode = city['cityCode']
-                        DistrictCode = city['districtCode']
+                        DistrictCode = city.get('districtCode', '')
                         Lat = city['latitude']
                         Lng = city['longitude']
                         break
@@ -158,7 +158,7 @@ class KFC:
                 food_name = food['nameCn'].replace('BBN', '')
                 menu_list += str(i) + '.' + food_name + '\n'
                 i += 1
-            menu_list += '====================\n直接输入分类编号'
+            menu_list += '====================\n直接输入分类编号，可连续输入，输入“退出”以结束'
             return menu_list, menu_detail
 
     async def get_food(self, menu_detail: list, number: int):
@@ -184,7 +184,8 @@ class KFC:
                 )
                 food_result += MessageSegment.text(food_name)
                 food_result += MessageSegment.text(detail + price_str) + img
-                food_result += MessageSegment.text('====================\n')
+                food_result += MessageSegment.text(
+                    '====================\n')
             return food_result
 
         menu = menu_detail[number]
@@ -201,8 +202,8 @@ class KFC:
 @KFC_eat.handle()
 async def kfc_eat(event: MessageEvent, matcher: Matcher, args: Message = CommandArg()):
     #! 好感达到500
-    if read_favor(event.sender.user_id)<500:
-        await matcher.finish('此功能要求好感度≥500',reply_message=True)
+    if read_favor(event.sender.user_id) < 500:
+        await matcher.finish('此功能要求好感度≥500', reply_message=True)
     plain_text = args.extract_plain_text()
     if plain_text:
         matcher.set_arg("city", args)  # 如果用户发送了参数则直接赋值
@@ -259,7 +260,7 @@ async def store_handler(store: str = ArgPlainText("store")):
 
 
 @KFC_eat.got("food")
-async def food_handler(event: G, bot: Bot, food: str = ArgPlainText("food")):
+async def food_handler(event: MessageEvent, bot: Bot, food: str = ArgPlainText("food")):
     global Food
     try:
         if '退出' in food:
@@ -267,11 +268,15 @@ async def food_handler(event: G, bot: Bot, food: str = ArgPlainText("food")):
         if re.match('^[0-9]*$', food) and 0 <= int(food) <= len(Food) - 1:
             food_results = await KFC().get_food(Food, int(food))
             # await KFC_eat.finish(food_results)
-            chain = await chain_reply(bot, food_results)
-            await bot.send_group_forward_msg(
-                group_id=event.group_id,
-                messages=chain
-            )
+            if isinstance(event, G):
+                chain = await chain_reply(bot, food_results)
+                await bot.send_group_forward_msg(
+                    group_id=event.group_id,
+                    messages=chain
+                )
+            else:
+                await bot.send(event, food_results)
+            await KFC_eat.reject('还可继续输入分类编号查询，输入“退出”退出查询')
         else:
             await KFC_eat.reject('序号有误，请重新输入')
     except ActionFailed as a:
