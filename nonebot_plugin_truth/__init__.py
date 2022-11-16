@@ -1,11 +1,15 @@
 from nonebot import on_fullmatch, on_startswith
-from nonebot.adapters.onebot.v11 import MessageEvent, Message, Bot
+from nonebot.adapters.onebot.v11 import MessageEvent, Message, Bot, MessageSegment
 from nonebot.typing import T_State
-from nonebot.params import State, ArgPlainText, EventPlainText
+from nonebot.params import State, Arg, EventPlainText
 import re
 import time
 from .apis import *
 from ..utils.message import *
+from ..utils.download import download_pic
+from .config import Config
+global_config = get_driver().config
+config = Config.parse_obj(global_config)
 
 get_truth_matcher = on_fullmatch('.q')
 add_truth_matcher = on_startswith('.add q')
@@ -18,25 +22,41 @@ async def get_truth_handle(event: MessageEvent, state: T_State = State()):
     truth = await get_truth(str(event.sender.user_id))
     if truth:
         state['id'] = truth['id']
-        await get_truth_matcher.send(f"{truth['id']}\n{truth['question']}", reply_message=True)
+        await get_truth_matcher.send(f"{truth['id']}\n{truth['question']}")
     else:
-        await get_truth_matcher.finish("获取问题失败，你可能已经回答完了所有问题，请使用.clear q重置", reply_message=True)
+        await get_truth_matcher.finish(MessageSegment.reply(event.message_id)+"获取问题失败，你可能已经回答完了所有问题，请使用.clear q重置")
 
 
 @get_truth_matcher.got('answer')
-async def get_truth_got(event: MessageEvent, message: str = ArgPlainText('answer'), state: T_State = State()):
-    answer_all = state.get('answer_all', '')
+async def get_truth_got(bot: Bot, event: MessageEvent, message: Message = Arg('answer'), state: T_State = State()):
+    answer_all: str = state.get('answer_all', '')
     if not message:
-        message = ''
-    if message.startswith('end'):
+        message = []
+    if message.extract_plain_text().startswith('end'):
         if not answer_all:
             await get_truth_matcher.finish(f'嗯嗯！感谢{event.sender.nickname}的精彩回答！')
         if await answer_truth(str(event.sender.user_id), state['id'], answer_all):
             await get_truth_matcher.finish(f'嗯嗯！感谢{event.sender.nickname}的精彩回答！')
         else:
             await get_truth_matcher.finish('记录回答失败，请联系管理员')
+    for msg in message:
+        if msg.type == 'text':
+            answer_all += msg.data['text']
+        elif msg.type == 'at':
+            qq = msg.data.get('qq', '')
+            user_info = await bot.get_stranger_info(user_id=int(qq))
+            answer_all += f'@{user_info["nickname"]} '
+        elif msg.type == 'image':
+            # 下载图片到本地
+            try:
+                pic_uid = await download_pic(msg.data['url'], config.truth_pic_path)
+            except Exception as e:
+                logger.error(e)
+                await get_truth_matcher.finish('警告：图片下载失败，已停止对此问题的记录')
+            # 用[[path]]代替图片
+            answer_all += f'[[{pic_uid}]]'
     # 用{{end}}分割不同条消息
-    answer_all += message+r'{{end}}'
+    answer_all += r'{{end}}'
     state['answer_all'] = answer_all
     await get_truth_matcher.reject()
 
@@ -66,17 +86,33 @@ async def get_truth_history_handle(bot: Bot, event: MessageEvent, message: str =
     if not id:
         await get_truth_history_matcher.finish('请输入问题编号')
     history = await get_truth_history(str(event.sender.user_id), int(id[0]))
-    msgs = Message()
+    if not history:
+        await get_truth_history_matcher.finish('你在这个问题上还没有回答记录哦~')
+    msgs = []
     for h in history:
 
-        msg = h['answer'].strip(r'{{end}}')
+        msg: str = h['answer'].strip(r'{{end}}')
         if not msg:
             continue
         msgs.append(time.strftime(r'%Y-%m-%d %H:%M:%S',
                                   time.gmtime(h['timeStamp']//1000)))
+        # 分割不同条消息
         msg = msg.split(r'{{end}}')
-        for text in msg:
-            msgs.append(text)
+        for msg_seg in msg:
+            # 寻找[[和]]的起始位置
+            pic_begin = msg_seg.find(r'[[')
+            pic_end = msg_seg.find(r']]')
+            if pic_begin != -1 and pic_end != -1:
+                # 图片路径
+                pic_uid = msg_seg[pic_begin+2:pic_end]
+                pic_bytes = open(config.truth_pic_path+pic_uid,'rb').read()
+                msgs.append(
+                    Message([msg_seg[:pic_begin],
+                             MessageSegment.image(
+                                 pic_bytes),
+                             msg_seg[pic_end+2:]]))
+            else:
+                msgs.append(msg_seg)
     if not msgs:
         await get_truth_history_matcher.finish('你在这个问题上还没有回答记录哦~')
 

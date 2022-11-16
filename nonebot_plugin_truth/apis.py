@@ -24,6 +24,7 @@ async def add_truth(questioner: str, question: str) -> bool:
 
 async def answer_truth(qq: str, id: int, answer: str) -> bool:
     async with aiohttp.ClientSession() as session:
+        print(answer)
         async with session.post(config.url+'answerTruth', json={'qq': qq, "id": id, "answer": answer}) as response:
             resp = await response.json()
             return resp['succ']
