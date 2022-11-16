@@ -105,7 +105,8 @@ async def get_truth_history_handle(bot: Bot, event: MessageEvent, message: str =
             if pic_begin != -1 and pic_end != -1:
                 # 图片路径
                 pic_uid = msg_seg[pic_begin+2:pic_end]
-                pic_bytes = open(config.truth_pic_path+pic_uid,'rb').read()
+                with open(config.truth_pic_path+pic_uid, 'rb') as f:
+                    pic_bytes = f.read()
                 msgs.append(
                     Message([msg_seg[:pic_begin],
                              MessageSegment.image(
