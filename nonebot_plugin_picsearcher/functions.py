@@ -29,7 +29,7 @@ async def saucenao_search(bot: Bot, file: BytesIO):
                 if resp.raw[i].thumbnail != "":
                     pic_bytes = await get_img(resp.raw[i].thumbnail)
                     message_chain = Message([MessageSegment.image(pic_bytes),
-                                                  MessageSegment.text(
+                                             MessageSegment.text(
                         f"\n相似度:{resp.raw[i].similarity}%"),
                         MessageSegment.text(
                         f"\n标题：{resp.raw[i].title} | 作者：{resp.raw[i].author}\n地址：{resp.raw[i].url}")
@@ -38,9 +38,9 @@ async def saucenao_search(bot: Bot, file: BytesIO):
                     rlimit = rlimit + 1
                     continue
                 nodelist.append(message_chain)
-    except:
-        logger.error("saucenao搜图失败！")
-        nodelist =  Message([MessageSegment.text("『×Error』saucenao搜图失败，请稍后再试")])
+    except Exception as e:
+        logger.error("saucenao搜图失败！",e)
+        nodelist = Message([MessageSegment.text("『×Error』saucenao搜图失败，请稍后再试")])
     return nodelist
 
 
@@ -99,7 +99,8 @@ async def ascii2d_search(bot: Bot, url: str, bovm: Boolean):
                 nodelist.append(message_chain)
     except:
         logger.error(f"ascii2d{name}引擎搜图失败！")
-        nodelist = Message([MessageSegment.text(f"『×Error』ascii2d{name}搜图失败，请稍后再试")])
+        nodelist = Message([MessageSegment.text(
+            f"『×Error』ascii2d{name}搜图失败，请稍后再试")])
     return nodelist
 
 
@@ -185,7 +186,7 @@ async def baidu_search(bot: Bot, file: BytesIO):
                 nodelist.append(message_chain)
     except:
         logger.error("百度引擎搜图失败！")
-        nodelist =  Message([MessageSegment.text("『×Error』百度搜图失败，请稍后再试")])
+        nodelist = Message([MessageSegment.text("『×Error』百度搜图失败，请稍后再试")])
     return nodelist
 
 

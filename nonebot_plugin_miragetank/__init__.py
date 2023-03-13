@@ -2,7 +2,7 @@ import base64
 
 from nonebot import on_command
 from nonebot.adapters.onebot.v11 import Bot, Message, MessageSegment, MessageEvent
-from nonebot.params import CommandArg, State
+from nonebot.params import CommandArg
 from nonebot.typing import T_State
 from nonebot.log import logger
 
@@ -17,7 +17,7 @@ mirage_tank = on_command(
 async def handle_first(
     bot: Bot,
     event: MessageEvent,
-    state: T_State = State(),
+    state: T_State,
     args: Message = CommandArg(),
 ):
     images = []
@@ -34,7 +34,7 @@ async def handle_first(
 
 @mirage_tank.got(
     "mod", prompt="『INFO』需要指定结果类型: gray | color")
-async def get_mod(event: MessageEvent, state: T_State = State()):
+async def get_mod(event: MessageEvent, state: T_State):
     mod = str(state["mod"]).strip()
     if mod not in ["gray", "color"]:
         await mirage_tank.reject('『INFO』需要在gray和color二选一，直接输入就好啦')
@@ -43,7 +43,7 @@ async def get_mod(event: MessageEvent, state: T_State = State()):
 @mirage_tank.got(
     "img1", prompt="『INFO』请发送两张图哦，按表里顺序")
 @mirage_tank.got("img2", prompt="『INFO』还需要一张里图哦~")
-async def get_images(state: T_State = State()):
+async def get_images(state: T_State):
     imgs = []
     mod = str(state["mod"])
     for seg in state["img1"] + state["img2"]:

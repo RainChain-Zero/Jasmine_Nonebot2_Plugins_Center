@@ -1,7 +1,6 @@
 from nonebot import get_driver, on_command, logger
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent, MessageSegment
 from nonebot.typing import T_State
-from nonebot.params import State
 from .config import Config
 
 from ..utils.data import read_favor
@@ -29,7 +28,7 @@ draw_pic = on_command('作图')
 
 
 @draw_pic.handle()
-async def draw_pic_handle(bot: Bot, event: MessageEvent, state: T_State = State()):
+async def draw_pic_handle(bot: Bot, event: MessageEvent, state: T_State):
     if read_favor(event.sender.user_id) < 3000:
         await draw_pic.finish("『×条件未满足』此功能要求好感度≥3000")
     if Working:
@@ -42,7 +41,7 @@ async def draw_pic_handle(bot: Bot, event: MessageEvent, state: T_State = State(
 
 @draw_pic.got('style', prompt='请选择绘画风格，仅输入编号\n1.古风\n2.油画\n3.水彩画\n4.卡通画\n5.二次元\n6.浮世绘\n'
               '7.蒸汽波艺术\n8.low poly\n9.像素风格\n10.概念艺术\n11.未来主义\n12.赛博朋克\n13.写实风格\n14.洛丽塔风格\n15.巴洛克风格\n16.超现实主义')
-async def draw_pic_got(bot: Bot, event: MessageEvent, state: T_State = State()):
+async def draw_pic_got(bot: Bot, event: MessageEvent, state: T_State):
     global Working
     index = str(state['style'])
     if not index.isdigit():

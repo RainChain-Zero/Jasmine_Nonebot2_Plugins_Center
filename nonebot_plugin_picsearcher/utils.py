@@ -6,7 +6,6 @@ import aiofiles
 import aiohttp
 from nonebot import Bot, get_driver
 
-from nonebot.adapters.mirai2 import MessageChain, MessageEvent, MessageSegment
 from .config import Config
 
 global_config = get_driver().config

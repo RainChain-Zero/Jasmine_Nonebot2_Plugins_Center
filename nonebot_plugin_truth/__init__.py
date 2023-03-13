@@ -1,7 +1,7 @@
 from nonebot import on_fullmatch, on_startswith
 from nonebot.adapters.onebot.v11 import MessageEvent, Message, Bot, MessageSegment
 from nonebot.typing import T_State
-from nonebot.params import State, Arg, EventPlainText
+from nonebot.params import Arg, EventPlainText
 import re
 import time
 from .apis import *
@@ -15,10 +15,11 @@ get_truth_matcher = on_fullmatch('.q')
 add_truth_matcher = on_startswith('.add q')
 clear_truth_answered_matcher = on_fullmatch('.clear q')
 get_truth_history_matcher = on_startswith('.get q')
+get_history_list_matcher = on_fullmatch('.all q')
 
 
 @get_truth_matcher.handle()
-async def get_truth_handle(event: MessageEvent, state: T_State = State()):
+async def get_truth_handle(event: MessageEvent, state: T_State):
     truth = await get_truth(str(event.sender.user_id))
     if truth:
         state['id'] = truth['id']
@@ -28,7 +29,7 @@ async def get_truth_handle(event: MessageEvent, state: T_State = State()):
 
 
 @get_truth_matcher.got('answer')
-async def get_truth_got(bot: Bot, event: MessageEvent, message: Message = Arg('answer'), state: T_State = State()):
+async def get_truth_got(bot: Bot, event: MessageEvent, state: T_State, message: Message = Arg('answer')):
     answer_all: str = state.get('answer_all', '')
     if not message:
         message = []
@@ -118,3 +119,24 @@ async def get_truth_history_handle(bot: Bot, event: MessageEvent, message: str =
         await get_truth_history_matcher.finish('你在这个问题上还没有回答记录哦~')
 
     await send_forward_msg(bot, event, event.sender.nickname, event.sender.user_id, msgs)
+
+
+@get_history_list_matcher.handle()
+async def get_history_list_handle(bot: Bot, event: MessageEvent):
+    history = await get_history_list(str(event.sender.user_id))
+    if not history:
+        await get_history_list_matcher.finish('你还没有回答过问题哦~')
+    msgs = []
+    # 用于标记每20个问题一组
+    i = 0
+    questions = ''
+    for h in history:
+        questions += f'{h["id"]}. {h["question"]}\n'
+        i = (i+1) % 20
+        if i == 0:
+            msgs.append(questions.strip())
+            questions = ''
+    if questions:
+        msgs.append(questions.strip())
+
+    await send_forward_msg(bot, event, '茉莉', bot.self_id, msgs)

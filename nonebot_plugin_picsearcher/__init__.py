@@ -9,12 +9,9 @@ from .utils import download_pic
 
 from .functions import *
 
-import nest_asyncio
 
 from ..utils.data import read_favor
 from ..utils.message import send_forward_msg
-# 允许嵌套loop
-nest_asyncio.apply()
 
 engine_dic = {"saucenao": saucenao_search, "tracemoe": tracemoe_search,
               "ascii2d": ascii2d_search_main, "iqdb": iqdb_search, "google": google_search,

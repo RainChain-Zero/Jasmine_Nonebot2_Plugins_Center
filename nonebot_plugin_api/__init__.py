@@ -3,7 +3,7 @@ from nonebot import get_driver, get_bot, logger
 import nonebot
 from .config import Config
 from fastapi import FastAPI, Body
-from nonebot.adapters.onebot.v11 import Bot
+from nonebot.adapters.onebot.v11 import Bot, MessageSegment, Message
 
 global_config = get_driver().config
 config = Config.parse_obj(global_config)
@@ -13,7 +13,6 @@ app: FastAPI = nonebot.get_app()
 
 @app.post("/yuqueWebhook")
 async def yuqueWebhook(body=Body(...)):
-    logger.info(body)
     data: dict = body["data"]
     bot: Bot = get_bot()
     msg = "『茉莉开发组』团队公告\n"
@@ -36,3 +35,10 @@ async def yuqueWebhook(body=Body(...)):
 
     msg = msg.encode('utf-8').decode("utf-8")
     await bot.send_group_msg(group_id=921454429, message=msg)
+
+
+@app.post("/musicCard")
+async def build_music_card(body=Body(...)):
+    bot: Bot = get_bot()
+    await bot.send_private_msg(
+        user_id=int(body['qq']), message=Message(MessageSegment.music(body['type'], body['id'])))

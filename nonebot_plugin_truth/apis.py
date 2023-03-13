@@ -44,3 +44,12 @@ async def clear_truth_answered(qq: str) -> bool:
         async with session.delete(config.url+'clearTruthAnswered', params={'qq': qq}) as response:
             resp = await response.json()
             return resp['succ']
+
+
+async def get_history_list(qq: str) -> List:
+    async with aiohttp.ClientSession() as session:
+        async with session.get(config.url+'getHistoryList', params={'qq': qq}) as response:
+            resp = await response.json()
+            if resp['succ']:
+                return resp['data']
+            return None

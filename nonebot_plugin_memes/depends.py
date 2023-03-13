@@ -5,7 +5,7 @@ from typing import List, Optional
 from nonebot.rule import Rule
 from nonebot import get_driver
 from nonebot.typing import T_State
-from nonebot.params import State, Depends
+from nonebot.params import Depends
 from nonebot.adapters.onebot.v11 import MessageSegment, MessageEvent, unescape
 
 ARG_KEY = "ARG"
@@ -16,7 +16,7 @@ REGEX_ARG = "REGEX_ARG"
 
 
 def regex(pattern: str) -> Rule:
-    def checker(event: MessageEvent, state: T_State = State()) -> bool:
+    def checker(event: MessageEvent, state: T_State) -> bool:
         msg = event.get_message()
         msg_seg: MessageSegment = msg[0]
         if not msg_seg.is_text():
@@ -24,12 +24,13 @@ def regex(pattern: str) -> Rule:
 
         seg_text = str(msg_seg).lstrip()
         start = "|".join(get_driver().config.command_start)
-        matched = re.match(rf"(?:{start})(?:{pattern})", seg_text, re.IGNORECASE | re.S)
+        matched = re.match(rf"(?:{start})(?:{pattern})",
+                           seg_text, re.IGNORECASE | re.S)
         if not matched:
             return False
 
         new_msg = msg.copy()
-        seg_text = seg_text[matched.end() :].lstrip()
+        seg_text = seg_text[matched.end():].lstrip()
         if seg_text:
             new_msg[0].data["text"] = seg_text
         else:
@@ -57,7 +58,7 @@ def regex(pattern: str) -> Rule:
 
 
 def Args(num: Optional[int] = None):
-    async def dependency(state: T_State = State()):
+    async def dependency(state: T_State):
         args: List[str] = state[ARGS_KEY]
         if num is not None and len(args) != num:
             return
@@ -67,7 +68,7 @@ def Args(num: Optional[int] = None):
 
 
 def RegexArg(key: str):
-    async def dependency(state: T_State = State()):
+    async def dependency(state: T_State):
         args: dict = state[REGEX_DICT]
         return args.get(key, None)
 
@@ -75,7 +76,7 @@ def RegexArg(key: str):
 
 
 def RegexArgs(num: Optional[int] = None):
-    async def dependency(state: T_State = State()):
+    async def dependency(state: T_State):
         args: List[str] = list(state[REGEX_GROUP])
         if num is not None and len(args) != num:
             return
@@ -85,7 +86,7 @@ def RegexArgs(num: Optional[int] = None):
 
 
 def Arg():
-    async def dependency(state: T_State = State()):
+    async def dependency(state: T_State):
         arg: str = state[ARG_KEY]
         if arg:
             return arg

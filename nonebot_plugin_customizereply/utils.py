@@ -3,7 +3,7 @@ import json
 from random import randint
 from .config import Config
 from nonebot import get_driver, logger
-from nonebot.adapters.mirai2 import MessageEvent, FriendMessage, GroupMessage
+from nonebot.adapters.onebot.v11 import MessageEvent, PrivateMessageEvent, GroupMessageEvent
 
 global_config = get_driver().config
 config = Config.parse_obj(global_config)
@@ -22,7 +22,7 @@ def draw_normal_reply(level: int, trigger: str, event: MessageEvent):
     reply = json.loads(j)
     reply_list = reply["0"][trigger][str(level)]
     name = event.sender.nickname if isinstance(
-        event, FriendMessage) else event.sender.name
+        event, PrivateMessageEvent) else event.sender.nickname
     return reply_list[randint(0, len(reply_list)-1)].replace("{nick}", name)
 
 # 指定人触发
@@ -40,8 +40,8 @@ def draw_special_reply(qq: int, trigger: str, event: MessageEvent):
     reply = json.loads(j)
     res_list = reply[str(qq)][trigger]
     name = ""
-    if(isinstance(event, FriendMessage)):
+    if (isinstance(event, PrivateMessageEvent)):
         name = event.sender.nickname
-    elif(isinstance(event, GroupMessage)):
-        name = event.sender.name
+    elif (isinstance(event, GroupMessageEvent)):
+        name = event.sender.card
     return res_list[randint(0, len(res_list)-1)].replace("{nick}", name)
