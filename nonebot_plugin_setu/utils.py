@@ -45,20 +45,16 @@ async def call_setu_api(num: int):
         return False
     # 一条消息的消息链
     pic_list = Message()
-    return_list = []
 
     # 提取返回json字段
     for data in res["data"]:
         title = data["title"]
         author = data["author"]
         pic_list.append(MessageSegment.text(
-            f"标题：{title}\n作者：{author}\n"))
+            f"title：{title} author：{author}\n"))
         pic_list.append(MessageSegment.image(await get_img(data["urls"]["original"], global_config.proxy)))
-        return_list.append(pic_list)
-        # tags = ""
-        pic_list = Message()
 
-    return return_list
+    return pic_list
 
 
 async def call_moe_api(num: int = 1, tags: List = [], session: aiohttp.ClientSession = None):
@@ -70,14 +66,15 @@ async def call_moe_api(num: int = 1, tags: List = [], session: aiohttp.ClientSes
         return res['data']
 
 
-async def get_pivix_pic(pivix_url: str, r18: bool, pid: int, session: aiohttp.ClientSession) -> MessageSegment:
-    headers = {'Referer': 'https://www.pixiv.net/'}
-    async with session.get(pivix_url, headers=headers, ssl=False, proxy=global_config.proxy) as response:
-        html = await response.text()
-        import re
-        pic_url = re.search(
-            r'"original":"(.*?)"}', html).group(1)
-
+async def get_pivix_pic(pid: int, r18: bool,  session: aiohttp.ClientSession) -> MessageSegment:
+    headers = {'Referer': 'https://www.pixiv.net/',
+               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36'}
+    async with session.get(f'https://www.pixiv.net/ajax/illust/{pid}/pages?lang=zh',
+                           headers=headers, ssl=False,
+                           proxy=global_config.proxy, cookies={'PHPSESSID': config.PHPSESSID}) as response:
+        pic_url = await response.json()
+        pic_url = pic_url['body'][0]['urls']['original']
+        print(pic_url)
         async with session.get(pic_url, headers=headers, ssl=False, proxy=global_config.proxy) as response:
             pic_ori = await response.content.read()
             if not r18:

@@ -13,6 +13,8 @@ class Config(BaseSettings):
     normal_favor_limit = 3000
     # 刷屏模式涩图好感
     boom_favor_limit = 3000
+    # pivix PHPSESSID
+    PHPSESSID = ''
 
     class Config:
         extra = "ignore"

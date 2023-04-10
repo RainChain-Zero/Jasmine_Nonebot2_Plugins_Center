@@ -41,9 +41,7 @@ async def send_setu_boom(bot: Bot, event: MessageEvent):
 
     messagechain_list = await call_setu_api(num)
 
-    for messagechain in messagechain_list:
-        await setu_boom.send(messagechain)
-
+    await setu_boom.finish(messagechain_list)
 # 授权涩图
 
 
@@ -114,7 +112,7 @@ async def send_moe(event: MessageEvent, args: Message = CommandArg()):
             corutine_list = []
             for moe in moe_list:
                 corutine_list.append(get_pivix_pic(
-                    moe['url'], r18=True if moe['nsfw'] == 2 else False, pid=moe['pid'], session=session))
+                    r18=True if moe['nsfw'] == 2 else False, pid=moe['pid'], session=session))
             # 并发获取图片
             pic_list = await asyncio.gather(*corutine_list)
         except Exception as e:
