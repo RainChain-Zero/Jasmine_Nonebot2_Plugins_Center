@@ -25,7 +25,7 @@ async def send_forward_msg(
         )
 
 
-async def get_img(url: str, proxy: Union[str, None] = None) -> bytes:
+async def get_img(url: str, proxy: Union[str, None] = None, headers=None,ssl=True) -> bytes:
     async with aiohttp.ClientSession() as session:
-        async with session.get(url, proxy=proxy) as response:
+        async with session.get(url, proxy=proxy, headers=headers,ssl=ssl) as response:
             return await response.content.read()

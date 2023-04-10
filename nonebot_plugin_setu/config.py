@@ -3,7 +3,7 @@ from pydantic import BaseSettings
 
 class Config(BaseSettings):
     # 一次最大发送涩图量
-    maxnum = 6
+    maxnum = 5
     # 用户数据文件夹
     conf_path = r"F:\Bot\mirai_console_diceplugin\Dice2632573315\user\UserConf"
     group_permission_path = r"/home/nonebot2/src/plugins/nonebot_plugin_setu/group_permission.json"

@@ -1,5 +1,7 @@
 import json
+from typing import List
 import requests
+import aiohttp
 from nonebot import Bot, get_driver, logger
 from nonebot.adapters.onebot.v11 import Message, MessageSegment
 from .config import Config
@@ -13,7 +15,7 @@ config = Config.parse_obj(global_config)
 
 
 def judge_maxnum(num):
-    if(num > config.maxnum):
+    if (num > config.maxnum):
         return False
     else:
         return True
@@ -31,33 +33,24 @@ def judge_group_permission(group: int) -> bool:
     f.close()
     j = json.loads(json_str)
     for g in j["group_list"]:
-        if(group == g):
+        if (group == g):
             return True
     return False
 
 
 async def call_setu_api(num: int):
-    # res = requests.get(
-    #     f"https://api.lolicon.app/setu/v2?proxy=pixiv.runrab.workers.dev&num={num}").json()
     res = requests.get(
         f"https://api.lolicon.app/setu/v2?proxy=i.pixiv.cat&num={num}").json()
-    if(res["error"] != ""):
+    if (res["error"] != ""):
         return False
     # 一条消息的消息链
     pic_list = Message()
     return_list = []
-    # tags = ""
 
     # 提取返回json字段
     for data in res["data"]:
         title = data["title"]
         author = data["author"]
-        # tag_cnt = 0
-        # for tag in data["tags"]:
-        #     tags = tags + f"| {tag}"
-        #     tag_cnt = tag_cnt+1
-        #     if(tag_cnt > 8):
-        #         break
         pic_list.append(MessageSegment.text(
             f"标题：{title}\n作者：{author}\n"))
         pic_list.append(MessageSegment.image(await get_img(data["urls"]["original"], global_config.proxy)))
@@ -66,3 +59,37 @@ async def call_setu_api(num: int):
         pic_list = Message()
 
     return return_list
+
+
+async def call_moe_api(num: int = 1, tags: List = [], session: aiohttp.ClientSession = None):
+    async with session.get('http://localhost:45445/randomMoe',
+                           params={'num': num, 'tags': tags}) as response:
+        res = await response.json()
+        if not res['succ']:
+            raise Exception('茉莉后台api请求出错')
+        return res['data']
+
+
+async def get_pivix_pic(pivix_url: str, r18: bool, pid: int, session: aiohttp.ClientSession) -> MessageSegment:
+    headers = {'Referer': 'https://www.pixiv.net/'}
+    async with session.get(pivix_url, headers=headers, ssl=False, proxy=global_config.proxy) as response:
+        html = await response.text()
+        import re
+        pic_url = re.search(
+            r'"original":"(.*?)"}', html).group(1)
+
+        async with session.get(pic_url, headers=headers, ssl=False, proxy=global_config.proxy) as response:
+            pic_ori = await response.content.read()
+            if not r18:
+                return f'pid:{pid}\n'+MessageSegment.image(pic_ori)+'\n'
+            return f'pid:{pid}\n'+MessageSegment.image(blur_pic(pic_ori))+'\n'
+
+
+def blur_pic(pic_ori: bytes) -> bytes:
+    from PIL import Image, ImageFilter
+    import io
+    img = Image.open(io.BytesIO(pic_ori))
+    img = img.filter(ImageFilter.GaussianBlur(radius=50))
+    out = io.BytesIO()
+    img.save(out, format='png')
+    return out.getvalue()
