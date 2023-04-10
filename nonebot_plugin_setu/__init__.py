@@ -26,22 +26,34 @@ moe_command = on_command("萌图")
 
 
 @setu_boom.handle()
-async def send_setu_boom(bot: Bot, event: MessageEvent):
-    msg = event.get_plaintext()
-    try:
-        num = int(re.compile(r"\d+").findall(msg)[0])
-    except:
-        num = 1
+async def send_setu_boom(event: MessageEvent, args: Message = CommandArg()):
+    args = args.extract_plain_text().split()
+    num = 1
+    for i in range(len(args)):
+        if args[i].isdigit():
+            num = int(args[i])
+            del args[i]
+            break
     if (not judge_maxnum(num)):
         await setu_boom.finish("『✖Error』一下太多对身体不好哦？")
-    if (read_favor(event.sender.user_id) < 3000):
-        await setu_boom.finish("『✖条件未满足』茉莉还不想给你看这些哦~(此功能好感要求>3000)")
+    if (read_favor(event.sender.user_id) < 2500):
+        await setu_boom.finish("『✖条件未满足』茉莉还不想给你看这些哦~(此功能好感要求>2500)")
     if (isinstance(event, GroupMessageEvent) and not judge_group_permission(event.group_id)):
         await setu_boom.finish("『✖群权限不足』茉莉并不觉得在这里这么做是安全的哦×(此功能需要向茉莉管理员申请许可)")
 
-    messagechain_list = await call_setu_api(num)
+    try:
+        messagechain_list = await call_setu_api(num, args)
+    except Exception as e:
+        logger.error(f"nonebot_plugin_setu:调用api失败{e}")
+        await setu_boom.finish("『✖Error』获取涩图失败，请稍后再试")
+    else:
+        msg = Message()
+        for m in messagechain_list:
+            msg.extend(m)
 
-    await setu_boom.finish(messagechain_list)
+        await setu_boom.finish(msg)
+
+
 # 授权涩图
 
 
@@ -95,7 +107,7 @@ async def takeback_group_permission(event: MessageEvent):
 
 @moe_command.handle()
 async def send_moe(event: MessageEvent, args: Message = CommandArg()):
-    if (read_favor(event.sender.user_id) < 2500):
+    if (read_favor(event.sender.user_id) < 2000):
         await setu_boom.finish("『✖条件未满足』茉莉还不想给你看这些哦~(此功能好感要求>2500)")
     args = args.extract_plain_text().split()
     num = 1
@@ -109,16 +121,16 @@ async def send_moe(event: MessageEvent, args: Message = CommandArg()):
     async with aiohttp.ClientSession() as session:
         try:
             moe_list = await call_moe_api(num, args, session=session)
-            corutine_list = []
-            for moe in moe_list:
-                corutine_list.append(get_pivix_pic(
-                    r18=True if moe['nsfw'] == 2 else False, pid=moe['pid'], session=session))
+            corutine_list = [get_pivix_pic(
+                r18=True if moe['nsfw'] == 2 else False, pid=moe['pid'], session=session) for moe in moe_list]
             # 并发获取图片
             pic_list = await asyncio.gather(*corutine_list)
         except Exception as e:
             logger.error(f"nonebot_plugin_setu:获取萌图失败，{e}")
+            await moe_command.finish("『✖Error』获取萌图失败，请稍后再试")
         else:
             msg = Message()
             for pic in pic_list:
                 msg.extend(pic)
+
             await moe_command.finish(msg)
