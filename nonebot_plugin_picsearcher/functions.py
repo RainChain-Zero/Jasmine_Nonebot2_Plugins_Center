@@ -22,7 +22,7 @@ async def saucenao_search(bot: Bot, file: BytesIO):
         async with Network(proxies=proxies) as client:
             saucenao = SauceNAO(
                 client=client, api_key=config.saucenao_api_key)
-            resp = await saucenao.search(file=file)
+            resp = await saucenao.search(file=file.read())
             rlimit = config.maxnum if len(
                 resp.raw) >= config.maxnum else len(resp.raw)
             for i in range(0, rlimit):
@@ -39,7 +39,7 @@ async def saucenao_search(bot: Bot, file: BytesIO):
                     continue
                 nodelist.append(message_chain)
     except Exception as e:
-        logger.error("saucenao搜图失败！",e)
+        logger.error(f"saucenao搜图失败！{e}")
         nodelist = Message([MessageSegment.text("『×Error』saucenao搜图失败，请稍后再试")])
     return nodelist
 
@@ -51,7 +51,7 @@ async def tracemoe_search(bot: Bot, file: BytesIO):
         async with Network(proxies=proxies) as client:
             tracemoe = TraceMoe(client=client, mute=False,
                                 size=None)
-            resp = await tracemoe.search(file=file)
+            resp = await tracemoe.search(file=file.read())
             rlimit = config.maxnum if len(
                 resp.raw) >= config.maxnum else len(resp.raw)
             for i in range(0, rlimit):
@@ -72,8 +72,8 @@ async def tracemoe_search(bot: Bot, file: BytesIO):
                     rlimit = rlimit + 1
                     continue
                 nodelist.append(message_chain)
-    except:
-        logger.error("tracemoe搜图失败！")
+    except Exception as e:
+        logger.error(f"tracemoe搜图失败！{e}")
         nodelist = Message([MessageSegment.text("『×Error』tracemoe搜图失败，请稍后再试")])
     return nodelist
 
@@ -97,8 +97,8 @@ async def ascii2d_search(bot: Bot, url: str, bovm: Boolean):
                     f"标题：{resp.raw[i].title} 作者：{resp.raw[1].author}\nurl：{resp.raw[i].url}\n"),
                     MessageSegment.image(pic_bytes)])
                 nodelist.append(message_chain)
-    except:
-        logger.error(f"ascii2d{name}引擎搜图失败！")
+    except Exception as e:
+        logger.error(f"ascii2d{name}引擎搜图失败！{e}")
         nodelist = Message([MessageSegment.text(
             f"『×Error』ascii2d{name}搜图失败，请稍后再试")])
     return nodelist
@@ -120,7 +120,7 @@ async def iqdb_search(bot: Bot, file: BytesIO):
     try:
         async with Network(proxies=proxies) as client:
             iqdb = Iqdb(client=client)
-            resp = await iqdb.search(file=file)
+            resp = await iqdb.search(file=file.read())
 
             rlimit = config.maxnum if len(
                 resp.raw) >= config.maxnum else len(resp.raw)
@@ -133,8 +133,8 @@ async def iqdb_search(bot: Bot, file: BytesIO):
                     rlimit = rlimit + 1
                     continue
                 nodelist.append(message_chain)
-    except:
-        logger.error("iqdb引擎搜图失败！")
+    except Exception as e:
+        logger.error(f"iqdb引擎搜图失败！{e}")
         nodelist = Message([MessageSegment.text("『×Error』iqdb搜图失败，请稍后再试")])
     return nodelist
 
@@ -145,7 +145,7 @@ async def google_search(bot: Bot, file: BytesIO):
     try:
         async with Network(proxies=proxies) as client:
             google = Google(client=client)
-            resp = await google.search(file=file)
+            resp = await google.search(file=file.read())
             rlimit = config.google_baidu_maxnum if len(
                 resp.raw) - 2 >= config.google_baidu_maxnum else len(resp.raw) - 2
             for i in range(2, 2 + rlimit):
@@ -158,8 +158,8 @@ async def google_search(bot: Bot, file: BytesIO):
                     message_chain = Message([MessageSegment.text(
                         f"标题：{resp.raw[i].title}\nurl：{resp.raw[i].url}\n")])
                     nodelist.append(message_chain)
-    except:
-        logger.error("Google引擎搜图失败！")
+    except Exception as e:
+        logger.error(f"Google引擎搜图失败！{e}")
         nodelist = Message([MessageSegment.text("『×Error』Google搜图失败，请稍后再试")])
     return nodelist
 
@@ -170,7 +170,7 @@ async def baidu_search(bot: Bot, file: BytesIO):
     try:
         async with Network() as client:
             baidu = BaiDu(client=client)
-            resp = await baidu.search(file=file)
+            resp = await baidu.search(file=file.read())
             if resp.same == None:
                 return Message([MessageSegment.text("百度识图未找到类似图片哦~")])
             rlimit = config.google_baidu_maxnum if len(
@@ -184,8 +184,8 @@ async def baidu_search(bot: Bot, file: BytesIO):
                     rlimit = rlimit + 1
                     continue
                 nodelist.append(message_chain)
-    except:
-        logger.error("百度引擎搜图失败！")
+    except Exception as e:
+        logger.error(f"百度引擎搜图失败！{e}")
         nodelist = Message([MessageSegment.text("『×Error』百度搜图失败，请稍后再试")])
     return nodelist
 
@@ -196,7 +196,7 @@ async def ehentai_search(bot: Bot, file: BytesIO) -> List:
     try:
         async with Network(proxies=proxies, cookies=config.ehentai_cookies) as client:
             ehentai = EHentai(client=client)
-            resp = await ehentai.search(file=file, ex=False)
+            resp = await ehentai.search(file=file.read(), ex=False)
             rlimit = config.maxnum if len(
                 resp.raw) >= config.maxnum else len(resp.raw)
             for i in range(0, rlimit):
@@ -208,7 +208,7 @@ async def ehentai_search(bot: Bot, file: BytesIO) -> List:
                     rlimit = rlimit + 1
                     continue
                 nodelist.append(message_chain)
-    except:
-        logger.error("E-Hentai引擎搜图失败！")
+    except Exception as e:
+        logger.error("E-Hentai引擎搜图失败！{e}")
         nodelist = Message([MessageSegment.text("『×Error』ehentai搜图失败，请稍后再试")])
     return nodelist
