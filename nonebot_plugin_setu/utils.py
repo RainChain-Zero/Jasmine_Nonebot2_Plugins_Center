@@ -74,12 +74,13 @@ async def call_moe_api(num: int = 1, tags: List = [], session: aiohttp.ClientSes
 async def get_pivix_pic(pid: int, r18: bool,  session: aiohttp.ClientSession) -> MessageSegment:
     headers = {'Referer': 'https://www.pixiv.net/',
                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36'}
+    logger.info(f'nonebot_plugin_setu:正在获取pid:{pid}的图片')
     async with session.get(f'https://www.pixiv.net/ajax/illust/{pid}/pages?lang=zh',
                            headers=headers, ssl=False,
                            proxy=global_config.proxy, cookies={'PHPSESSID': config.PHPSESSID}) as response:
         pic_url = await response.json()
         pic_url = pic_url['body'][0]['urls']['original']
-        print(pic_url)
+        logger.info(f'nonebot_plugin_setu: 图片url:{pic_url}')
         async with session.get(pic_url, headers=headers, ssl=False, proxy=global_config.proxy) as response:
             pic_ori = await response.content.read()
             # r18模糊处理

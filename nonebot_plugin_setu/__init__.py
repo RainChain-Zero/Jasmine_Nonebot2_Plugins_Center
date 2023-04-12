@@ -47,6 +47,8 @@ async def send_setu_boom(event: MessageEvent, args: Message = CommandArg()):
         logger.error(f"nonebot_plugin_setu:调用api失败{e}")
         await setu_boom.finish("『✖Error』获取涩图失败，请稍后再试")
     else:
+        if not messagechain_list:
+            await setu_boom.finish("『✖Error』没有找到涩图")
         msg = Message()
         for m in messagechain_list:
             msg.extend(m)
@@ -121,6 +123,8 @@ async def send_moe(event: MessageEvent, args: Message = CommandArg()):
     async with aiohttp.ClientSession() as session:
         try:
             moe_list = await call_moe_api(num, args, session=session)
+            if not moe_list:
+                await moe_command.finish("『✖Error』找不到对应的萌图")
             corutine_list = [get_pivix_pic(
                 r18=True if moe['nsfw'] == 2 else False, pid=moe['pid'], session=session) for moe in moe_list]
             # 并发获取图片
